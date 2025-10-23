@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "quadros",
-    "slug": "quadros",
+    "name": "app.quadros",
+    "slug": "app.quadros",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
