@@ -1,10 +1,12 @@
+// firebaseConfig.js
 import { initializeApp } from "firebase/app";
-import { getAuth } from "firebase/auth";
+// Importe getAuth e initializeAuth
+import { getAuth, initializeAuth, getReactNativePersistence } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
-
+import ReactNativeAsyncStorage from '@react-native-async-storage/async-storage'; // Importe o AsyncStorage
 
 const firebaseConfig = {
-  apiKey: "AIzaSyCXQyeh-0SGKBQLZ6bj6lvUCgFvgEWqbGw",
+  apiKey: "AIzaSyCXQyeh-0SGKBQLZ6bj6lvUCgFvgEWqbGw", // Mantenha suas credenciais seguras
   authDomain: "projetoquadrosapp.firebaseapp.com",
   projectId: "projetoquadrosapp",
   storageBucket: "projetoquadrosapp.firebasestorage.app",
@@ -12,9 +14,13 @@ const firebaseConfig = {
   appId: "1:800881797083:web:79ad72b271b84c398429fe"
 };
 
-// Inicializar o Firebase
-const app = initializeApp(firebaseConfig); 
+const app = initializeApp(firebaseConfig);
 
-// Exportar os serviços que vamos usar
-export const auth = getAuth(app, );
-export const db = getFirestore(app);
+// Inicialize o Auth com persistência
+const auth = initializeAuth(app, {
+  persistence: getReactNativePersistence(ReactNativeAsyncStorage)
+});
+
+const db = getFirestore(app);
+
+export { auth, db }; // Exporte auth e db
