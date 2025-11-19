@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { View, Text, StyleSheet, KeyboardAvoidingView, Platform, ImageBackground, Animated, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, KeyboardAvoidingView, Platform, ImageBackground, Animated } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { NavigationContainer } from '@react-navigation/native';
@@ -12,8 +12,9 @@ import HomeScreen from './src/screens/HomeScreen';
 import AddProductScreen from './src/screens/AddProductScreen';
 import EditProductScreen from './src/screens/EditProductScreen';
 import SelectEditScreen from './src/screens/SelectEditScreen';
-import SobreScreen from './src/screens/SobreScreen';
+import MoreScreen from './src/screens/MoreScreen';
 import ProductDetailScreen from './src/screens/ProductDetailScreen';
+import DashboardScreen from './src/screens/DashboardScreen'; // <--- IMPORTANTE: Importamos a tela aqui
 import LoginScreen from './src/screens/LoginScreen';
 import RegisterScreen from './src/screens/RegisterScreen';
 import Toast from './src/components/Toast';
@@ -22,21 +23,48 @@ const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
 const BG = { uri: 'https://images.unsplash.com/photo-1579783902614-a3fb3927b6a5?q=80&w=1945&auto=format-fit=crop' };
 
-const AuthBackground = () => (
-  <ImageBackground source={BG} resizeMode="cover" style={StyleSheet.absoluteFill}>
-    <View style={{...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.65)'}} />
-  </ImageBackground>
-);
+const AuthBackground = () => {
+  const scaleAnim = useRef(new Animated.Value(1)).current;
+
+  useEffect(() => {
+    Animated.timing(scaleAnim, {
+      toValue: 1.15,
+      duration: 15000,
+      useNativeDriver: true,
+    }).start();
+  }, []);
+
+  const animatedStyle = {
+    transform: [{ scale: scaleAnim }],
+  };
+
+  return (
+    <Animated.View style={[StyleSheet.absoluteFill, animatedStyle]}>
+      <ImageBackground source={BG} resizeMode="cover" style={StyleSheet.absoluteFill}>
+        <View style={{...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.65)'}} />
+      </ImageBackground>
+    </Animated.View>
+  );
+};
 
 function AuthNavigator({ onLoginSuccess }) {
   const [alertMessage, setAlertMessage] = useState(null);
+  const [successMessage, setSuccessMessage] = useState(null);
 
   const showAlert = (msg) => {
     setAlertMessage(msg);
   };
   
+  const showSuccess = (msg) => {
+    setSuccessMessage(msg);
+  };
+  
   const closeAlert = () => {
     setAlertMessage(null);
+  };
+  
+  const closeSuccess = () => {
+    setSuccessMessage(null);
   };
 
   return (
@@ -61,18 +89,20 @@ function AuthNavigator({ onLoginSuccess }) {
         <Stack.Screen name="Register">
           {props => (
             <View style={s.authContainer}>
-              <RegisterScreen {...props} showAlert={showAlert} />
+              <RegisterScreen {...props} showAlert={showAlert} showSuccess={showSuccess} />
             </View>
           )}
         </Stack.Screen>
       </Stack.Navigator>
       
-      <Toast message={alertMessage} onClose={closeAlert} />
+      <Toast message={alertMessage} onClose={closeAlert} type="alert" />
+      <Toast message={successMessage} onClose={closeSuccess} type="success" />
       
     </KeyboardAvoidingView>
   );
 }
 
+// Stack Navigator para a aba INÍCIO
 function HomeStackNavigator({ userId, userRole, onLogout }) {
   return (
     <Stack.Navigator
@@ -113,6 +143,12 @@ function HomeStackNavigator({ userId, userRole, onLogout }) {
         component={ProductDetailScreen} 
         options={{ title: 'Detalhes do Quadro' }}
       />
+      {/* IMPORTANTE: Registramos a tela Dashboard AQUI para que ela exista na navegação */}
+      <Stack.Screen 
+        name="DashboardScreen" 
+        component={DashboardScreen} 
+        options={{ title: 'Dashboard' }}
+      />
     </Stack.Navigator>
   );
 }
@@ -126,8 +162,8 @@ function MainTabNavigator({ userId, userRole, onLogout }) {
           let iconName;
           if (route.name === 'Início') {
             iconName = focused ? 'images' : 'images-outline';
-          } else if (route.name === 'Sobre') {
-            iconName = focused ? 'information-circle' : 'information-circle-outline';
+          } else if (route.name === 'Mais') {
+            iconName = focused ? 'apps' : 'apps-outline';
           }
           return <Ionicons name={iconName} size={size} color={color} />;
         },
@@ -135,14 +171,18 @@ function MainTabNavigator({ userId, userRole, onLogout }) {
           backgroundColor: '#1f1f1f',
           borderTopColor: '#333',
         },
-        tabBarActiveTintColor: '#2575FC',
+        tabBarActiveTintColor: '#00A79D',
         tabBarInactiveTintColor: '#aaa',
       })}
     >
       <Tab.Screen name="Início">
         {props => <HomeStackNavigator {...props} userId={userId} userRole={userRole} onLogout={onLogout} />}
       </Tab.Screen>
-      <Tab.Screen name="Sobre" component={SobreScreen} />
+      <Tab.Screen 
+        name="Mais" 
+        component={MoreScreen} 
+        initialParams={{ userId: userId, userRole: userRole }}
+      />
     </Tab.Navigator>
   );
 }
