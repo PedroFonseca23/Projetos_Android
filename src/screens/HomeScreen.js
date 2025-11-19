@@ -4,7 +4,6 @@ import {
   Text, 
   StyleSheet, 
   FlatList, 
-  SafeAreaView, 
   TouchableOpacity,
   Alert,
   ImageBackground,
@@ -24,16 +23,10 @@ const HERO_IMAGE = { uri: 'https://images.unsplash.com/photo-1506806732259-39c2d
 const CustomHeader = ({ onLogout }) => (
   <View style={s.headerContainer}>
     <View style={s.headerLogo}>
-      <Ionicons name="images-outline" size={24} color="#2575FC" />
+      <Ionicons name="images-outline" size={24} color="#00A79D" />
       <Text style={s.headerLogoText}>QUADROS</Text>
     </View>
     <View style={s.headerIcons}>
-      <TouchableOpacity 
-        style={s.iconButton} 
-        onPress={() => Alert.alert('Busca', 'A busca ainda será implementada.')}
-      >
-        <Ionicons name="search-outline" size={24} color="#fff" />
-      </TouchableOpacity>
       <TouchableOpacity 
         style={s.iconButton} 
         onPress={() => Alert.alert('Carrinho', 'O carrinho ainda será implementado.')}
@@ -47,23 +40,19 @@ const CustomHeader = ({ onLogout }) => (
   </View>
 );
 
-const HeroBanner = ({ title, subtitle, onPress }) => (
+const HeroBanner = ({ title, subtitle }) => (
   <View style={s.heroContainer}>
     <ImageBackground source={HERO_IMAGE} resizeMode="cover" style={s.heroImage}>
       <View style={s.heroOverlay} />
       <Text style={s.heroTitle}>{title}</Text>
       <Text style={s.heroSubtitle}>{subtitle}</Text>
-      <TouchableOpacity style={s.heroButton} activeOpacity={0.8} onPress={onPress}>
-        <Text style={s.heroButtonText}>VER CATÁLOGO</Text>
-        <Ionicons name="arrow-forward" size={16} color="#fff" style={{marginLeft: 8}} />
-      </TouchableOpacity>
     </ImageBackground>
   </View>
 );
 
 const ListHeader = ({ title, subtitle }) => (
   <View>
-    <HeroBanner title={title} subtitle={subtitle} onPress={() => {}} />
+    <HeroBanner title={title} subtitle={subtitle} />
     <Text style={s.sectionTitle}>Nossos Quadros</Text>
   </View>
 );
@@ -95,10 +84,6 @@ const AdminMenu = ({ visible, onClose, navigation, onEditBanner }) => {
         <TouchableOpacity style={s.menuButton} onPress={() => navigate('SelectEditScreen')}>
           <Ionicons name="pencil-outline" size={22} color="#fff" />
           <Text style={s.menuButtonText}>Editar/Remover Quadros</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={s.menuButton} onPress={() => Alert.alert('Dashboard', 'A tela de dashboard será implementada.')}>
-          <Ionicons name="stats-chart-outline" size={22} color="#fff" />
-          <Text style={s.menuButtonText}>Ver Dashboard</Text>
         </TouchableOpacity>
       </View>
     </Modal>
@@ -144,6 +129,9 @@ const EditBannerModal = ({ visible, onClose, initialTitle, initialSubtitle, onSa
 
 function HomeScreen({ navigation, userId, userRole, onLogout }) {
   const [products, setProducts] = useState([]);
+  const [filteredProducts, setFilteredProducts] = useState([]);
+  const [searchQuery, setSearchQuery] = useState('');
+  
   const [isLoading, setIsLoading] = useState(true);
   const [menuVisible, setMenuVisible] = useState(false);
   const [editBannerVisible, setEditBannerVisible] = useState(false);
@@ -162,6 +150,7 @@ function HomeScreen({ navigation, userId, userRole, onLogout }) {
       setHeroTitle(dbTitle || 'Bem vindo');
       setHeroSubtitle(dbSubtitle || 'Obras de arte que transformam ambientes.');
       setProducts(dbProducts);
+      setFilteredProducts(dbProducts);
     } catch (e) {
       console.error(e);
       Alert.alert('Erro', 'Não foi possível carregar os dados.');
@@ -176,6 +165,17 @@ function HomeScreen({ navigation, userId, userRole, onLogout }) {
     }, [userId])
   );
 
+  useEffect(() => {
+    if (searchQuery === '') {
+      setFilteredProducts(products);
+    } else {
+      const filtered = products.filter(product =>
+        product.title.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+      setFilteredProducts(filtered);
+    }
+  }, [searchQuery, products]);
+
   const handleProductPress = async (product) => {
     try {
       await logProductView(product.id, userId);
@@ -185,7 +185,7 @@ function HomeScreen({ navigation, userId, userRole, onLogout }) {
       navigation.navigate('ProductDetailScreen', { product: product });
     }
   };
-  
+
   const handleSaveBanner = async (title, subtitle) => {
     try {
       await setAppSetting('heroTitle', title);
@@ -225,8 +225,19 @@ function HomeScreen({ navigation, userId, userRole, onLogout }) {
     <ContextSafeAreaView style={s.container}>
       <CustomHeader onLogout={onLogout} />
       
+      <View style={s.searchContainer}>
+        <Ionicons name="search-outline" size={20} color="#888" style={s.searchIcon} />
+        <TextInput
+          style={s.searchInput}
+          placeholder="Pesquisar quadros..."
+          placeholderTextColor="#888"
+          value={searchQuery}
+          onChangeText={setSearchQuery}
+        />
+      </View>
+      
       <FlatList
-        data={products}
+        data={filteredProducts}
         renderItem={renderProduct}
         keyExtractor={item => item.id}
         numColumns={2}
@@ -296,9 +307,29 @@ const s = StyleSheet.create({
   iconButton: {
     marginLeft: 20,
   },
+  searchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#1f1f1f',
+    borderRadius: 8,
+    marginHorizontal: 15,
+    marginTop: 10,
+    paddingHorizontal: 10,
+    borderWidth: 1,
+    borderColor: '#333',
+  },
+  searchIcon: {
+    marginRight: 10,
+  },
+  searchInput: {
+    flex: 1,
+    height: 40,
+    color: '#fff',
+    fontSize: 16,
+  },
   heroContainer: {
     width: '100%',
-    height: 300,
+    height: 250,
     backgroundColor: '#000',
   },
   heroImage: {
@@ -322,20 +353,6 @@ const s = StyleSheet.create({
     color: '#eee',
     textAlign: 'center',
     marginTop: 8,
-  },
-  heroButton: {
-    backgroundColor: '#2575FC',
-    paddingVertical: 12,
-    paddingHorizontal: 24,
-    borderRadius: 8,
-    marginTop: 20,
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  heroButtonText: {
-    color: '#fff',
-    fontSize: 14,
-    fontWeight: '600',
   },
   sectionTitle: {
     fontSize: 22,
@@ -374,7 +391,7 @@ const s = StyleSheet.create({
     width: 60,
     height: 60,
     borderRadius: 30,
-    backgroundColor: '#2575FC',
+    backgroundColor: '#00A79D',
     justifyContent: 'center',
     alignItems: 'center',
     shadowColor: '#000',

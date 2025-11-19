@@ -40,6 +40,10 @@ export const CurrencyInput = ({ placeholder, value, onChange, keyboard, autoCap 
 
 const s = StyleSheet.create({
   inputContainer: { flexDirection: 'row', alignItems: 'center', height: 50, backgroundColor: 'rgba(0,0,0,0.7)', borderRadius: 6, marginBottom: 15, borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)', paddingHorizontal: 12 },
-  inputContainerFocused: { borderColor: '#2575FC', borderWidth: 1.5, backgroundColor: 'rgba(0,0,0,0.8)' },
+  inputContainerFocused: { 
+    borderColor: '#00A79D',
+    borderWidth: 1.5, 
+    backgroundColor: 'rgba(0,0,0,0.8)' 
+  },
   inputCore: { flex: 1, height: '100%', color: '#fff', fontSize: 16 },
 });

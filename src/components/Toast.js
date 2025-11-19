@@ -3,58 +3,66 @@ import { Animated, Text, StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-const TOAST_DURATION = 3000; // 3 segundos
+const TOAST_DURATION = 3000;
 
-const Toast = ({ message, onClose }) => {
+const Toast = ({ message, onClose, type = 'alert' }) => {
   const slideAnim = useRef(new Animated.Value(0)).current;
   const timerAnim = useRef(new Animated.Value(1)).current;
   const [displayMessage, setDisplayMessage] = useState(null);
 
-  useEffect(() => {
-    // Se uma nova mensagem chegar (e não for nula)...
-    if (message) {
-      setDisplayMessage(message); // Define a mensagem a ser exibida
-      timerAnim.setValue(1); // Reseta a barra de tempo para 100%
+  const toastConfig = {
+    alert: {
+      color: '#ffbb33',
+      icon: 'alert-circle-outline',
+    },
+    success: {
+      color: '#00C851',
+      icon: 'checkmark-circle-outline',
+    },
+  };
 
-      // Anima a entrada
+  const config = toastConfig[type] || toastConfig.alert;
+
+  useEffect(() => {
+    if (message) {
+      setDisplayMessage(message);
+      timerAnim.setValue(1);
+
       Animated.timing(slideAnim, {
         toValue: 1,
         duration: 300,
         useNativeDriver: true,
       }).start();
 
-      // Inicia a animação da barra de tempo
       Animated.timing(timerAnim, {
         toValue: 0,
         duration: TOAST_DURATION,
-        useNativeDriver: false, // 'width' não é compatível com o driver nativo
+        useNativeDriver: false,
       }).start();
-
-      // Define o temporizador para fechar o toast
+      
       const timer = setTimeout(() => {
-        // Inicia a animação de saída
-        Animated.timing(slideAnim, {
-          toValue: 0,
-          duration: 300,
-          useNativeDriver: true,
-        }).start(() => {
-          // QUANDO a animação de saída terminar:
-          onClose(); // Limpa a mensagem no App.js
-          setDisplayMessage(null); // Oculta o componente
-        });
+        handleClose();
       }, TOAST_DURATION);
 
-      // Limpa o temporizador se o componente for desmontado
       return () => clearTimeout(timer);
     }
-  }, [message]); // Este efeito SÓ roda quando a prop 'message' mudar
+  }, [message]);
 
-  // Se não houver mensagem para exibir, não renderiza nada
+  const handleClose = () => {
+    Animated.timing(slideAnim, {
+      toValue: 0,
+      duration: 300,
+      useNativeDriver: true,
+    }).start(() => {
+      onClose();
+      setDisplayMessage(null);
+    });
+  };
+
   if (!displayMessage) {
     return null;
   }
 
-  // Estilo para a animação de deslizar (entrada/saída)
   const toastStyle = {
     opacity: slideAnim,
     transform: [
@@ -67,14 +75,13 @@ const Toast = ({ message, onClose }) => {
     ],
   };
 
-  // Estilo para a barra de tempo
   const timerStyle = {
     height: 4,
     width: timerAnim.interpolate({
       inputRange: [0, 1],
-      outputRange: ['0%', '100%'], // Anima de 0% para 100% (ou vice-versa)
+      outputRange: ['0%', '100%'],
     }),
-    backgroundColor: '#ffbb33',
+    backgroundColor: config.color,
     borderRadius: 2,
   };
 
@@ -82,7 +89,7 @@ const Toast = ({ message, onClose }) => {
     <Animated.View style={[s.container, toastStyle]}>
       <SafeAreaView style={s.toast}>
         <View style={s.content}>
-          <Ionicons name="alert-circle-outline" size={24} color="#ffbb33" />
+          <Ionicons name={config.icon} size={24} color={config.color} />
           <Text style={s.message}>{displayMessage}</Text>
         </View>
         <View style={s.timerBarContainer}>

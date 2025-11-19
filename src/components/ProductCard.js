@@ -3,9 +3,9 @@ import { View, Text, Image, TouchableOpacity, StyleSheet, Dimensions, Animated }
 import { Ionicons } from '@expo/vector-icons';
 
 const { width } = Dimensions.get('window');
-const cardWidth = (width / 2) - 20;
+const cardWidth = (width / 2) - 25;
 
-const ProductCard = ({ product, onPress, onEdit, onDelete, index }) => {
+const ProductCard = ({ product, onPress, userRole, onDelete, onEdit, index }) => {
   const anim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -90,7 +90,7 @@ const s = StyleSheet.create({
   price: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: '#2575FC',
+    color: '#00A79D',
   },
   adminButtons: {
     position: 'absolute',

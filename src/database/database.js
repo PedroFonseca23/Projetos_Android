@@ -75,7 +75,6 @@ export const loginUser = async (email, password) => {
   return user;
 };
 
-
 export const addProduct = async (title, price, width, height, imageUri, userId) => {
   const id = Crypto.randomUUID();
   await db.runAsync(
@@ -83,7 +82,6 @@ export const addProduct = async (title, price, width, height, imageUri, userId) 
     id, title, price, width, height, imageUri, userId
   );
 };
-
 
 export const updateProduct = async (id, title, price, width, height, imageUri) => {
   await db.runAsync(
@@ -118,6 +116,28 @@ export const getAppSetting = async (key) => {
 
 export const setAppSetting = async (key, value) => {
   await db.runAsync('UPDATE app_settings SET value = ? WHERE key = ?', value, key);
+};
+
+export const getDashboardStats = async () => {
+  const totalViews = await db.getFirstAsync('SELECT COUNT(*) as count FROM product_analytics');
+  const totalProducts = await db.getFirstAsync('SELECT COUNT(*) as count FROM products');
+  const totalUsers = await db.getFirstAsync('SELECT COUNT(*) as count FROM users');
+  
+  const popularProducts = await db.getAllAsync(`
+    SELECT p.title, COUNT(a.id) as viewCount
+    FROM products p
+    JOIN product_analytics a ON p.id = a.productId
+    GROUP BY p.title
+    ORDER BY viewCount DESC
+    LIMIT 5
+  `);
+
+  return {
+    totalViews: totalViews.count,
+    totalProducts: totalProducts.count,
+    totalUsers: totalUsers.count,
+    popularProducts: popularProducts,
+  };
 };
 
 export default db;

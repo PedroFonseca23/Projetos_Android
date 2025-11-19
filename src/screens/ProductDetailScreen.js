@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, Image, ScrollView, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, Image, ScrollView, TouchableOpacity, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import SolidButton from '../components/SolidButton';
@@ -66,7 +66,7 @@ const s = StyleSheet.create({
   price: {
     fontSize: 24,
     fontWeight: '600',
-    color: '#2575FC',
+    color: '#00A79D',
     marginBottom: 20,
   },
   divider: {
