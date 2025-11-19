@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { View, Text, StyleSheet, KeyboardAvoidingView, Platform, ImageBackground, Animated } from 'react-native';
+import { View, Text, StyleSheet, KeyboardAvoidingView, Platform, ImageBackground, Animated, ActivityIndicator } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { NavigationContainer } from '@react-navigation/native';
@@ -9,12 +9,14 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { initDatabase } from './src/database/database';
 import HomeScreen from './src/screens/HomeScreen';
+import CatalogScreen from './src/screens/CatalogScreen';
+import CartScreen from './src/screens/CartScreen';
 import AddProductScreen from './src/screens/AddProductScreen';
 import EditProductScreen from './src/screens/EditProductScreen';
 import SelectEditScreen from './src/screens/SelectEditScreen';
 import MoreScreen from './src/screens/MoreScreen';
 import ProductDetailScreen from './src/screens/ProductDetailScreen';
-import DashboardScreen from './src/screens/DashboardScreen'; // <--- IMPORTANTE: Importamos a tela aqui
+import DashboardScreen from './src/screens/DashboardScreen';
 import LoginScreen from './src/screens/LoginScreen';
 import RegisterScreen from './src/screens/RegisterScreen';
 import Toast from './src/components/Toast';
@@ -23,23 +25,15 @@ const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
 const BG = { uri: 'https://images.unsplash.com/photo-1579783902614-a3fb3927b6a5?q=80&w=1945&auto=format-fit=crop' };
 
+// --- COMPONENTES VISUAIS ---
+
 const AuthBackground = () => {
   const scaleAnim = useRef(new Animated.Value(1)).current;
-
   useEffect(() => {
-    Animated.timing(scaleAnim, {
-      toValue: 1.15,
-      duration: 15000,
-      useNativeDriver: true,
-    }).start();
+    Animated.timing(scaleAnim, { toValue: 1.15, duration: 15000, useNativeDriver: true }).start();
   }, []);
-
-  const animatedStyle = {
-    transform: [{ scale: scaleAnim }],
-  };
-
   return (
-    <Animated.View style={[StyleSheet.absoluteFill, animatedStyle]}>
+    <Animated.View style={[StyleSheet.absoluteFill, { transform: [{ scale: scaleAnim }] }]}>
       <ImageBackground source={BG} resizeMode="cover" style={StyleSheet.absoluteFill}>
         <View style={{...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.65)'}} />
       </ImageBackground>
@@ -47,108 +41,58 @@ const AuthBackground = () => {
   );
 };
 
-function AuthNavigator({ onLoginSuccess }) {
-  const [alertMessage, setAlertMessage] = useState(null);
-  const [successMessage, setSuccessMessage] = useState(null);
+// --- NAVEGADORES ---
 
-  const showAlert = (msg) => {
-    setAlertMessage(msg);
-  };
-  
-  const showSuccess = (msg) => {
-    setSuccessMessage(msg);
-  };
-  
-  const closeAlert = () => {
-    setAlertMessage(null);
-  };
-  
-  const closeSuccess = () => {
-    setSuccessMessage(null);
-  };
-
+function AuthNavigator({ onLoginSuccess, showToast }) {
   return (
-    <KeyboardAvoidingView 
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'} 
-      style={{flex: 1}}
-    >
+    <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{flex: 1}}>
       <AuthBackground />
-      <Stack.Navigator 
-        screenOptions={{
-          headerShown: false,
-          cardStyle: { backgroundColor: 'transparent' },
-        }}
-      >
+      <Stack.Navigator screenOptions={{ headerShown: false, cardStyle: { backgroundColor: 'transparent' } }}>
         <Stack.Screen name="Login">
           {props => (
             <View style={s.authContainer}>
-              <LoginScreen {...props} onLoginSuccess={onLoginSuccess} showAlert={showAlert} />
+                <LoginScreen 
+                    {...props} 
+                    onLoginSuccess={onLoginSuccess} 
+                    showAlert={(msg) => showToast(msg, 'alert')} 
+                />
             </View>
           )}
         </Stack.Screen>
         <Stack.Screen name="Register">
           {props => (
-            <View style={s.authContainer}>
-              <RegisterScreen {...props} showAlert={showAlert} showSuccess={showSuccess} />
-            </View>
+             <View style={s.authContainer}>
+                <RegisterScreen 
+                    {...props} 
+                    showAlert={(msg) => showToast(msg, 'alert')} 
+                    showSuccess={(msg) => showToast(msg, 'success')} 
+                />
+             </View>
           )}
         </Stack.Screen>
       </Stack.Navigator>
-      
-      <Toast message={alertMessage} onClose={closeAlert} type="alert" />
-      <Toast message={successMessage} onClose={closeSuccess} type="success" />
-      
     </KeyboardAvoidingView>
   );
 }
 
-// Stack Navigator para a aba INÍCIO
-function HomeStackNavigator({ userId, userRole, onLogout }) {
+function CatalogStackNavigator({ userId, userRole }) {
   return (
-    <Stack.Navigator
-      screenOptions={{
-        headerStyle: { backgroundColor: '#1f1f1f' },
-        headerTintColor: '#fff',
-        headerTitleAlign: 'left',
-        headerTitleStyle: { fontWeight: '700' },
-      }}
-    >
-      <Stack.Screen 
-        name="HomeScreen"
-        options={{
-          headerShown: false,
-        }}
-      >
-        {props => <HomeScreen {...props} userId={userId} userRole={userRole} onLogout={onLogout} />}
-      </Stack.Screen>
-      <Stack.Screen 
-        name="AddProduct" 
-        component={AddProductScreen} 
-        options={{ title: 'Adicionar Novo Quadro' }}
-        initialParams={{ userId: userId }}
-        />
-      <Stack.Screen 
-        name="EditProduct" 
-        component={EditProductScreen} 
-        options={{ title: 'Editar Quadro' }}
-      />
-      <Stack.Screen 
-        name="SelectEditScreen" 
-        component={SelectEditScreen} 
-        options={{ title: 'Editar Quadros' }}
-        initialParams={{ userId: userId, userRole: userRole }}
-      />
-      <Stack.Screen 
-        name="ProductDetailScreen" 
-        component={ProductDetailScreen} 
-        options={{ title: 'Detalhes do Quadro' }}
-      />
-      {/* IMPORTANTE: Registramos a tela Dashboard AQUI para que ela exista na navegação */}
-      <Stack.Screen 
-        name="DashboardScreen" 
-        component={DashboardScreen} 
-        options={{ title: 'Dashboard' }}
-      />
+    <Stack.Navigator screenOptions={{ headerStyle: { backgroundColor: '#1f1f1f' }, headerTintColor: '#fff' }}>
+      <Stack.Screen name="CatalogList" component={CatalogScreen} options={{ headerShown: false }} initialParams={{ userId, userRole }} />
+      <Stack.Screen name="ProductDetailScreen" component={ProductDetailScreen} options={{ title: 'Detalhes' }} initialParams={{ userId }} />
+      <Stack.Screen name="CartScreen" component={CartScreen} options={{ title: 'Carrinho', headerShown: false }} initialParams={{ userId }} />
+      <Stack.Screen name="DashboardScreen" component={DashboardScreen} options={{ title: 'Dashboard' }} />
+      <Stack.Screen name="AddProduct" component={AddProductScreen} options={{ title: 'Adicionar Quadro' }} initialParams={{ userId }} />
+      <Stack.Screen name="SelectEditScreen" component={SelectEditScreen} options={{ title: 'Gerenciar Quadros' }} initialParams={{ userId, userRole }} />
+      <Stack.Screen name="EditProduct" component={EditProductScreen} options={{ title: 'Editar' }} />
+    </Stack.Navigator>
+  );
+}
+
+function MoreStackNavigator({ userId, userRole }) {
+  return (
+    <Stack.Navigator screenOptions={{ headerStyle: { backgroundColor: '#1f1f1f' }, headerTintColor: '#fff' }}>
+      <Stack.Screen name="MoreList" component={MoreScreen} options={{ headerShown: false }} initialParams={{ userId, userRole }} />
     </Stack.Navigator>
   );
 }
@@ -160,66 +104,63 @@ function MainTabNavigator({ userId, userRole, onLogout }) {
         headerShown: false,
         tabBarIcon: ({ focused, color, size }) => {
           let iconName;
-          if (route.name === 'Início') {
-            iconName = focused ? 'images' : 'images-outline';
-          } else if (route.name === 'Mais') {
-            iconName = focused ? 'apps' : 'apps-outline';
-          }
+          if (route.name === 'Início') iconName = focused ? 'home' : 'home-outline';
+          else if (route.name === 'Catálogo') iconName = focused ? 'grid' : 'grid-outline';
+          else if (route.name === 'Mais') iconName = focused ? 'menu' : 'menu-outline';
           return <Ionicons name={iconName} size={size} color={color} />;
         },
-        tabBarStyle: {
-          backgroundColor: '#1f1f1f',
-          borderTopColor: '#333',
-        },
+        tabBarStyle: { backgroundColor: '#1f1f1f', borderTopColor: '#333', height: 60, paddingBottom: 10 },
         tabBarActiveTintColor: '#00A79D',
-        tabBarInactiveTintColor: '#aaa',
+        tabBarInactiveTintColor: '#666',
       })}
     >
-      <Tab.Screen name="Início">
-        {props => <HomeStackNavigator {...props} userId={userId} userRole={userRole} onLogout={onLogout} />}
+      <Tab.Screen name="Início" component={HomeScreen} />
+      <Tab.Screen name="Catálogo">
+        {() => <CatalogStackNavigator userId={userId} userRole={userRole} />}
       </Tab.Screen>
-      <Tab.Screen 
-        name="Mais" 
-        component={MoreScreen} 
-        initialParams={{ userId: userId, userRole: userRole }}
-      />
+      <Tab.Screen name="Mais">
+        {() => <MoreStackNavigator userId={userId} userRole={userRole} />}
+      </Tab.Screen>
     </Tab.Navigator>
   );
 }
 
+// --- APP PRINCIPAL ---
+
 export default function App() {
   const [userToken, setUserToken] = useState(null);
   const [userRole, setUserRole] = useState(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isDbReady, setIsDbReady] = useState(false); // Controle do Banco de Dados
   
-  const handleLogin = (user) => {
-    setUserToken(user.id);
-    setUserRole(user.role);
-  };
-  
-  const handleLogout = () => {
-    setUserToken(null);
-    setUserRole(null);
+  // Estados do Toast
+  const [toastMsg, setToastMsg] = useState(null);
+  const [toastType, setToastType] = useState('success');
+
+  // Função auxiliar para mostrar toast
+  const showToast = (msg, type = 'success') => {
+    setToastMsg(msg);
+    setToastType(type);
   };
 
   useEffect(() => {
-    const initializeDB = async () => {
-      try {
-        await initDatabase();
-        console.log("Banco de dados SQLite inicializado com sucesso.");
-      } catch (e) {
-        console.error("Erro ao inicializar banco de dados SQLite", e);
+    const startApp = async () => {
+      console.log("⏳ Iniciando App...");
+      const success = await initDatabase();
+      if (success) {
+        setIsDbReady(true); 
+        console.log("🚀 App liberado!");
+      } else {
+        console.error("❌ Falha crítica na inicialização do DB");
       }
-      setIsLoading(false);
     };
-
-    initializeDB();
+    startApp();
   }, []);
 
-  if (isLoading) {
+  if (!isDbReady) {
     return (
-      <View style={s.loadingContainer}>
-        <Text style={s.loadingText}>Carregando...</Text>
+      <View style={{flex: 1, backgroundColor: '#121212', justifyContent: 'center', alignItems: 'center'}}>
+        <ActivityIndicator size="large" color="#00A79D" />
+        <Text style={{color: '#fff', marginTop: 20}}>Preparando Banco de Dados...</Text>
       </View>
     );
   }
@@ -227,29 +168,26 @@ export default function App() {
   return (
     <SafeAreaProvider>
       <NavigationContainer>
-        {userToken == null ? (
-          <AuthNavigator onLoginSuccess={handleLogin} />
+        <StatusBar style="light" />
+        
+        {!userToken ? (
+            <AuthNavigator 
+                onLoginSuccess={(user) => { setUserToken(user.id); setUserRole(user.role); }} 
+                showToast={showToast}
+            />
         ) : (
-          <MainTabNavigator userId={userToken} userRole={userRole} onLogout={handleLogout} />
+            <MainTabNavigator userId={userToken} userRole={userRole} onLogout={() => setUserToken(null)} />
         )}
+
+        {}
+        <Toast message={toastMsg} type={toastType} onClose={() => setToastMsg(null)} />
+        
       </NavigationContainer>
-      <StatusBar style="light" />
     </SafeAreaProvider>
   );
 }
 
 const s = StyleSheet.create({
-  loadingContainer: { 
-    flex: 1, 
-    justifyContent: 'center', 
-    alignItems: 'center', 
-    backgroundColor: '#121212' 
-  },
-  loadingText: { 
-    fontSize: 24, 
-    color: '#fff', 
-    fontWeight: '700' 
-  },
   authContainer: {
     flex: 1,
     justifyContent: 'center',
