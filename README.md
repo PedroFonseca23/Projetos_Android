@@ -1,4 +1,4 @@
-# 🎨 EDEM Quadros - App de Vendas de Arte
+# 🎨 Edem Quadros - App de Vendas de Arte
 
 > **🚧 Status do Projeto: Versão Base (Em Desenvolvimento) 🚧**
 >
@@ -10,7 +10,7 @@
 
 Este projeto foi desenvolvido como parte da avaliação da disciplina de **Programação Para Dispositivos Móveis em Android** na faculdade **Estácio de Sá (Unidade Via Brasil - RJ)**.
 
-O **EDEM Quadros** é uma plataforma móvel desenvolvida para revolucionar a venda de quadros online, conectando artistas e amantes da arte através de uma interface moderna e intuitiva. O objetivo é impulsionar as vendas online e fortalecer o reconhecimento da marca com um aplicativo profissional.
+A **Edem Quadros** é uma empresa dedicada à venda de quadros, e este aplicativo foi criado para impulsionar suas vendas online. A plataforma conecta a marca aos seus clientes através de uma interface moderna e intuitiva, com o objetivo de fortalecer o reconhecimento da marca no mercado digital.
 
 ## 📱 Funcionalidades Implementadas (Base)
 
@@ -33,10 +33,8 @@ O aplicativo conta atualmente com as seguintes funcionalidades operacionais:
     * Adição e remoção de itens.
     * Cálculo automático do valor total.
     * Simulação de checkout.
-    * O checkout Oficial Sera feito Na forma final Do app.
 * **Persistência de Dados:**
     * Banco de dados local **SQLite** para armazenar usuários, produtos e logs de visualização.
-    * Sera Feito o Banco de Dados em Nuvem No Desenvolvimento Final do App
 
 ## 🛠 Tecnologias Utilizadas
 
@@ -44,6 +42,7 @@ O aplicativo conta atualmente com as seguintes funcionalidades operacionais:
 * **Framework:** Expo
 * **Banco de Dados:** SQLite (expo-sqlite)
 * **Navegação:** React Navigation (Stack & Tab)
+* **Ícones:** Ionicons
 * **Imagens:** Expo Image Picker
 
 ## 👥 Equipe de Desenvolvimento
