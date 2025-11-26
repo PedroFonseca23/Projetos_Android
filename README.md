@@ -13,7 +13,25 @@ Sendo Elas:
 Pedro fonseca Silva
 Matricula:202502821581
 
-Gabriel
+Gabriel Faria Soares
+Matricula:202502335131
+
+Juan Vitor Tavares
+Matricula:202501515347
+
+Marcelle silva Campos
+Matricula:202502420706
+
+Rafael Eduardo Rodrigues Maia
+Matricula:202502494653
+
+;
+
+## ✨Conceitos do Projeto
+
+O conceito Deste projeto Foi Produzir um App que pudesse alavancar as vendas e tambem o reconhecimento da marca, sendo de extrema O profissionalismo Para que o app seja feito de forma Bonita, Amostrativa, e ao mesmo tempo Profissional.
+
+
 
 
 
