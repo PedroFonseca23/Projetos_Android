@@ -35,13 +35,12 @@ const CartScreen = ({ navigation, route }) => {
     loadCart();
   };
 
-  const handleCheckout = async () => {
-    Alert.alert('Sucesso', 'Compra finalizada! (Simulação)', [
-        { text: 'OK', onPress: async () => {
-            await clearCart(userId);
-            loadCart();
-        }}
-    ]);
+  const handleCheckout = () => {
+ 
+    navigation.navigate('PaymentScreen', { 
+        total: total,
+        userId: userId
+    });
   };
 
   const renderItem = ({ item }) => (

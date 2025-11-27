@@ -1,60 +1,135 @@
-import React from 'react';
-import { View, Text, StyleSheet, ScrollView, ImageBackground, TouchableOpacity } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import React, { useRef, useState, useEffect } from 'react';
+import { 
+  View, Text, StyleSheet, ScrollView, ImageBackground, 
+  TouchableOpacity, Dimensions, FlatList 
+} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-const HERO_IMG = { uri: 'https://images.unsplash.com/photo-1513519245088-0e12902e5a38?q=80&w=2070&auto=format&fit=crop' };
+const { width } = Dimensions.get('window');
 
-const FeatureItem = ({ icon, title, text }) => (
-  <View style={s.featureItem}>
-    <View style={s.iconBox}>
-      <Ionicons name={icon} size={28} color="#00A79D" />
-    </View>
-    <View>
-      <Text style={s.featureTitle}>{title}</Text>
-      <Text style={s.featureText}>{text}</Text>
-    </View>
-  </View>
-);
+// CARROSSEL: Imagens atualizadas
+const CAROUSEL_IMAGES = [
+  { 
+    id: '1', 
+    title: 'THOR E VIADO', 
+    subtitle: 'A harmonia perfeita de texturas naturais', 
+    uri: 'https://images.unsplash.com/photo-1611486212557-88be5ff6f941?q=80&w=2070' 
+  },
+  { 
+    id: '2', 
+    title: 'PEÇAS ÚNICAS', 
+    subtitle: 'Nenhum quadro é igual ao outro', 
+    uri: 'https://images.unsplash.com/photo-1513519245088-0e12902e5a38?q=80&w=2070' 
+  },
+  { 
+    id: '3', 
+    title: 'DESIGN RÚSTICO', 
+    subtitle: 'O toque acolhedor que sua casa merece', 
+    // CORREÇÃO: Troquei a imagem por uma mais estável e de alta qualidade
+    uri: 'https://images.unsplash.com/photo-1505691938895-1758d7feb511?q=80&w=2070' 
+  },
+];
 
 const HomeScreen = ({ navigation }) => {
-  return (
-    <View style={s.container}>
-      <ScrollView>
-        {/* Hero Section */}
-        <ImageBackground source={HERO_IMG} style={s.hero} resizeMode="cover">
-          <View style={s.overlay} />
-          <Text style={s.heroTitle}>ARTE QUE INSPIRA</Text>
-          <Text style={s.heroSubtitle}>Transforme seu espaço com exclusividade.</Text>
+  const insets = useSafeAreaInsets();
+  const [carouselIndex, setCarouselIndex] = useState(0);
+  const flatListRef = useRef(null);
+  
+  // Auto-Scroll Robusto
+  useEffect(() => {
+    const timer = setInterval(() => {
+      if (flatListRef.current) {
+        let nextIndex = (carouselIndex + 1) % CAROUSEL_IMAGES.length;
+        setCarouselIndex(nextIndex);
+        try {
+          flatListRef.current.scrollToIndex({ index: nextIndex, animated: true });
+        } catch (e) {
+          console.log("Erro ao rolar carrossel:", e);
+        }
+      }
+    }, 5000);
+    return () => clearInterval(timer);
+  }, [carouselIndex]);
+
+  const renderCarouselItem = ({ item }) => (
+    <View style={{ width, height: 450 }}>
+      <ImageBackground source={{ uri: item.uri }} style={s.heroImage} resizeMode="cover">
+        <View style={s.heroOverlay} />
+        
+        <View style={s.heroContent}>
+          <Text style={s.heroSubtitle}>{item.subtitle}</Text>
+          <Text style={s.heroTitle}>{item.title}</Text>
           
           <TouchableOpacity 
             style={s.ctaButton} 
-            activeOpacity={0.8}
+            activeOpacity={0.9}
             onPress={() => navigation.navigate('Catálogo')}
           >
-            <Text style={s.ctaText}>EXPLORAR COLEÇÃO</Text>
+            <Text style={s.ctaText}>VER COLEÇÃO</Text>
+            <Ionicons name="arrow-forward" size={16} color="#fff" style={{marginLeft: 5}} />
           </TouchableOpacity>
-        </ImageBackground>
 
-        {/* Pontos da Empresa */}
+        </View>
+      </ImageBackground>
+    </View>
+  );
+
+  return (
+    <View style={[s.container, { paddingTop: insets.top }]}>
+      <ScrollView showsVerticalScrollIndicator={false}>
+        
+        {/* CARROSSEL */}
+        <View>
+          <FlatList
+            ref={flatListRef}
+            data={CAROUSEL_IMAGES}
+            renderItem={renderCarouselItem}
+            horizontal
+            pagingEnabled
+            showsHorizontalScrollIndicator={false}
+            keyExtractor={item => item.id}
+            getItemLayout={(data, index) => ({
+              length: width,
+              offset: width * index,
+              index,
+            })}
+            onMomentumScrollEnd={(ev) => {
+               const index = Math.floor(ev.nativeEvent.contentOffset.x / width);
+               setCarouselIndex(index);
+            }}
+            onScrollToIndexFailed={info => {
+              const wait = new Promise(resolve => setTimeout(resolve, 500));
+              wait.then(() => {
+                flatListRef.current?.scrollToIndex({ index: info.index, animated: true });
+              });
+            }}
+          />
+        </View>
+
         <View style={s.content}>
-          <Text style={s.sectionHeader}>Por que a Quadros?</Text>
+          {/* REMOVIDO: Seção de Estilos de Acabamento */}
+
+          {/* DESTAQUES */}
+          <Text style={s.sectionHeader}>A Arte da Marcenaria</Text>
           
-          <FeatureItem 
-            icon="diamond-outline" 
-            title="Curadoria Premium" 
-            text="Selecionamos apenas artistas com traços únicos e modernos."
-          />
-          <FeatureItem 
-            icon="rocket-outline" 
-            title="Entrega Rápida" 
-            text="Receba sua obra de arte em qualquer lugar do Brasil."
-          />
-          <FeatureItem 
-            icon="shield-checkmark-outline" 
-            title="Garantia de Qualidade" 
-            text="Materiais de alta durabilidade e acabamento impecável."
-          />
+          <View style={s.featureCard}>
+            <Ionicons name="hammer" size={32} color="#00A79D" />
+            <View style={s.featureTextContainer}>
+              <Text style={s.featureTitle}>Produção Artesanal</Text>
+              <Text style={s.featureDesc}>Cada quadro é montado manualmente, unindo madeira nobre e tecidos selecionados.</Text>
+            </View>
+          </View>
+
+          <View style={s.featureCard}>
+            <Ionicons name="finger-print" size={32} color="#ffbb33" />
+            <View style={s.featureTextContainer}>
+              <Text style={s.featureTitle}>Peça Exclusiva</Text>
+              <Text style={s.featureDesc}>Devido aos veios da madeira e corte do tecido, você terá uma obra irreplicável.</Text>
+            </View>
+          </View>
+
+          <View style={{height: 100}} /> 
         </View>
       </ScrollView>
     </View>
@@ -63,18 +138,41 @@ const HomeScreen = ({ navigation }) => {
 
 const s = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#121212' },
-  hero: { height: 400, justifyContent: 'center', alignItems: 'center', padding: 20 },
-  overlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.6)' },
-  heroTitle: { fontSize: 32, fontWeight: '900', color: '#fff', letterSpacing: 2, textAlign: 'center' },
-  heroSubtitle: { fontSize: 16, color: '#ccc', marginTop: 10, marginBottom: 30, textAlign: 'center' },
-  ctaButton: { backgroundColor: '#00A79D', paddingVertical: 15, paddingHorizontal: 40, borderRadius: 30 },
-  ctaText: { color: '#fff', fontWeight: 'bold', fontSize: 16, letterSpacing: 1 },
-  content: { padding: 25 },
-  sectionHeader: { fontSize: 22, fontWeight: 'bold', color: '#fff', marginBottom: 20, textAlign: 'center' },
-  featureItem: { flexDirection: 'row', alignItems: 'center', marginBottom: 25, backgroundColor: '#1f1f1f', padding: 15, borderRadius: 12 },
-  iconBox: { width: 50, alignItems: 'center' },
-  featureTitle: { color: '#fff', fontSize: 18, fontWeight: 'bold', marginBottom: 4 },
-  featureText: { color: '#aaa', fontSize: 14, maxWidth: '90%' },
+  
+  // Hero
+  heroImage: { width: '100%', height: '100%', justifyContent: 'flex-end' },
+  // Ajuste no overlay para evitar problemas na web
+  heroOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.3)' }, 
+  heroContent: { padding: 25, paddingBottom: 60 },
+  
+  heroTitle: { fontSize: 36, fontWeight: '900', color: '#fff', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 20, textShadowColor: 'rgba(0,0,0,0.5)', textShadowRadius: 10 },
+  heroSubtitle: { color: '#00A79D', fontSize: 14, fontWeight: 'bold', marginBottom: 5, letterSpacing: 2, textTransform: 'uppercase' },
+  
+  // Botão CTA
+  ctaButton: { 
+    flexDirection: 'row', 
+    backgroundColor: '#00A79D', 
+    paddingVertical: 14, 
+    paddingHorizontal: 30, 
+    borderRadius: 30, 
+    alignSelf: 'flex-start', 
+    alignItems: 'center', 
+    shadowColor: '#00A79D', 
+    shadowOpacity: 0.4, 
+    shadowRadius: 10, 
+    elevation: 10 
+  },
+  ctaText: { color: '#fff', fontWeight: 'bold', fontSize: 14 },
+
+  // Conteúdo
+  content: { padding: 20, marginTop: -20, borderTopLeftRadius: 25, borderTopRightRadius: 25, backgroundColor: '#121212' },
+  sectionHeader: { fontSize: 22, fontWeight: 'bold', color: '#fff', marginBottom: 20, marginTop: 10 },
+
+  // Cards de Info
+  featureCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#1f1f1f', padding: 20, borderRadius: 16, marginBottom: 15, borderWidth: 1, borderColor: '#2a2a2a' },
+  featureTextContainer: { marginLeft: 15, flex: 1 },
+  featureTitle: { color: '#fff', fontSize: 16, fontWeight: 'bold', marginBottom: 4 },
+  featureDesc: { color: '#888', fontSize: 13 },
 });
 
 export default HomeScreen;

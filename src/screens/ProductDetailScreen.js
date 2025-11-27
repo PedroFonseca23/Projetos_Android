@@ -2,25 +2,23 @@ import React from 'react';
 import { View, Text, Image, StyleSheet, ScrollView, Dimensions, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import SolidButton from '../components/SolidButton';
-import { addToCart } from '../database/database'; // <--- Importe a função
+import { addToCart } from '../database/database';
 
 const { width } = Dimensions.get('window');
 
 const ProductDetailScreen = ({ route, navigation }) => {
-  const { product } = route.params;
-  
+  const { product, userId } = route.params; // Garantindo que userId venha dos params
   
   const handleAddToCart = async () => {
-    
-    
     try {
-        
-        if (route.params.userId) {
-            await addToCart(route.params.userId, product.id);
+        // Verifica se userId existe (seja pelo params direto ou passado na navegação)
+        if (userId) {
+            await addToCart(userId, product.id);
             Alert.alert('Sucesso', 'Item adicionado ao carrinho!');
             navigation.goBack();
         } else {
-            Alert.alert('Erro', 'Usuário não identificado.');
+            // Tenta pegar de uma rota global ou alerta erro
+            Alert.alert('Atenção', 'Faça login novamente para adicionar ao carrinho.');
         }
     } catch (e) {
         console.error(e);
@@ -31,7 +29,15 @@ const ProductDetailScreen = ({ route, navigation }) => {
   return (
     <SafeAreaView style={s.container} edges={['bottom']}>
       <ScrollView>
-        <Image source={{ uri: product.imageUri }} style={s.image} />
+        {/* CORREÇÃO AQUI: resizeMode="contain" para ver a obra inteira */}
+        <View style={s.imageContainer}>
+             <Image 
+                source={{ uri: product.imageUri }} 
+                style={s.image} 
+                resizeMode="contain" 
+             />
+        </View>
+        
         <View style={s.content}>
           <Text style={s.title}>{product.title}</Text>
           <Text style={s.price}>{product.price}</Text>
@@ -52,7 +58,18 @@ const ProductDetailScreen = ({ route, navigation }) => {
 
 const s = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#121212' },
-  image: { width: width, height: width, backgroundColor: '#333' },
+  // Ajuste no container da imagem para centralizar melhor
+  imageContainer: {
+    width: width,
+    height: width, // Mantém área quadrada
+    backgroundColor: '#000', // Fundo preto para destacar a obra
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  image: { 
+    width: '100%', 
+    height: '100%', 
+  },
   content: { padding: 20 },
   title: { fontSize: 26, fontWeight: 'bold', color: '#fff', marginBottom: 8 },
   price: { fontSize: 22, color: '#00A79D', fontWeight: '600' },

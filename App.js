@@ -3,9 +3,11 @@ import { View, Text, StyleSheet, KeyboardAvoidingView, Platform, ImageBackground
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { NavigationContainer } from '@react-navigation/native';
-import { createStackNavigator } from '@react-navigation/stack';
+import { createStackNavigator, CardStyleInterpolators } from '@react-navigation/stack';
+import PaymentScreen from './src/screens/PaymentScreen';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
+
 
 import { initDatabase } from './src/database/database';
 import HomeScreen from './src/screens/HomeScreen';
@@ -23,21 +25,67 @@ import Toast from './src/components/Toast';
 
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
-const BG = { uri: 'https://images.unsplash.com/photo-1579783902614-a3fb3927b6a5?q=80&w=1945&auto=format-fit=crop' };
-
+const BACKGROUND_IMAGES = [
+  'https://images.unsplash.com/photo-1579783902614-a3fb3927b6a5?q=80&w=1945&auto=format&fit=crop', // Arte 1
+  'https://images.unsplash.com/photo-1547891654-e66ed7ebb968?q=80&w=2070&auto=format&fit=crop',     // Arte 2 (Abstrata)
+  'https://images.unsplash.com/photo-1569172102373-d56b0264177b?q=80&w=2027&auto=format&fit=crop',   // Museu
+  'https://images.unsplash.com/photo-1578301978693-85fa9c0320b9?q=80&w=1919&auto=format&fit=crop',   // Tintas
+];
 // --- COMPONENTES VISUAIS ---
 
 const AuthBackground = () => {
-  const scaleAnim = useRef(new Animated.Value(1)).current;
+  const [imgIndex, setImgIndex] = useState(0);
+  const fadeAnim = useRef(new Animated.Value(1)).current; 
+
   useEffect(() => {
-    Animated.timing(scaleAnim, { toValue: 1.15, duration: 15000, useNativeDriver: true }).start();
+    
+    const interval = setInterval(() => {
+      
+      
+      Animated.timing(fadeAnim, {
+        toValue: 0,           
+        duration: 1500,       
+        useNativeDriver: true,
+      }).start(() => {
+        
+        
+        setImgIndex((prevIndex) => (prevIndex + 1) % BACKGROUND_IMAGES.length);
+        
+        
+        fadeAnim.setValue(1);
+      });
+      
+    }, 6000); 
+
+    return () => clearInterval(interval);
   }, []);
+
+  
+  const currentImg = { uri: BACKGROUND_IMAGES[imgIndex] };
+  const nextIndex = (imgIndex + 1) % BACKGROUND_IMAGES.length;
+  const nextImg = { uri: BACKGROUND_IMAGES[nextIndex] };
+
   return (
-    <Animated.View style={[StyleSheet.absoluteFill, { transform: [{ scale: scaleAnim }] }]}>
-      <ImageBackground source={BG} resizeMode="cover" style={StyleSheet.absoluteFill}>
-        <View style={{...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.65)'}} />
-      </ImageBackground>
-    </Animated.View>
+    <View style={StyleSheet.absoluteFill}>
+      {}
+      <ImageBackground 
+        source={nextImg} 
+        resizeMode="cover" 
+        style={StyleSheet.absoluteFill} 
+      />
+
+      {}
+      <Animated.View style={[StyleSheet.absoluteFill, { opacity: fadeAnim }]}>
+        <ImageBackground 
+          source={currentImg} 
+          resizeMode="cover" 
+          style={StyleSheet.absoluteFill} 
+        />
+      </Animated.View>
+
+      {}
+      <View style={{...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.65)'}} />
+    </View>
   );
 };
 
@@ -77,10 +125,30 @@ function AuthNavigator({ onLoginSuccess, showToast }) {
 
 function CatalogStackNavigator({ userId, userRole }) {
   return (
-    <Stack.Navigator screenOptions={{ headerStyle: { backgroundColor: '#1f1f1f' }, headerTintColor: '#fff' }}>
+    <Stack.Navigator 
+      screenOptions={{ 
+        headerStyle: { backgroundColor: '#1f1f1f' }, 
+        headerTintColor: '#fff',
+        
+        // Isso faz a transição lateral suave em todos os sistemas
+        cardStyleInterpolator: CardStyleInterpolators.forHorizontalIOS, 
+      }}
+    >
       <Stack.Screen name="CatalogList" component={CatalogScreen} options={{ headerShown: false }} initialParams={{ userId, userRole }} />
       <Stack.Screen name="ProductDetailScreen" component={ProductDetailScreen} options={{ title: 'Detalhes' }} initialParams={{ userId }} />
       <Stack.Screen name="CartScreen" component={CartScreen} options={{ title: 'Carrinho', headerShown: false }} initialParams={{ userId }} />
+      
+      {}
+      <Stack.Screen 
+        name="PaymentScreen" 
+        component={PaymentScreen} 
+        options={{ 
+            title: 'Pagamento',
+          
+            cardStyleInterpolator: CardStyleInterpolators.forVerticalIOS 
+        }} 
+      />
+
       <Stack.Screen name="DashboardScreen" component={DashboardScreen} options={{ title: 'Dashboard' }} />
       <Stack.Screen name="AddProduct" component={AddProductScreen} options={{ title: 'Adicionar Quadro' }} initialParams={{ userId }} />
       <Stack.Screen name="SelectEditScreen" component={SelectEditScreen} options={{ title: 'Gerenciar Quadros' }} initialParams={{ userId, userRole }} />
@@ -88,15 +156,20 @@ function CatalogStackNavigator({ userId, userRole }) {
     </Stack.Navigator>
   );
 }
-
-function MoreStackNavigator({ userId, userRole }) {
+function MoreStackNavigator({ userId, userRole, onLogout }) {
   return (
     <Stack.Navigator screenOptions={{ headerStyle: { backgroundColor: '#1f1f1f' }, headerTintColor: '#fff' }}>
-      <Stack.Screen name="MoreList" component={MoreScreen} options={{ headerShown: false }} initialParams={{ userId, userRole }} />
+      <Stack.Screen 
+        name="MoreList" 
+        component={MoreScreen} 
+        options={{ headerShown: false }} 
+        initialParams={{ userId, userRole, onLogout }} 
+      />
     </Stack.Navigator>
   );
 }
 
+// CORREÇÃO AQUI: Recebe e repassa onLogout
 function MainTabNavigator({ userId, userRole, onLogout }) {
   return (
     <Tab.Navigator
@@ -119,7 +192,7 @@ function MainTabNavigator({ userId, userRole, onLogout }) {
         {() => <CatalogStackNavigator userId={userId} userRole={userRole} />}
       </Tab.Screen>
       <Tab.Screen name="Mais">
-        {() => <MoreStackNavigator userId={userId} userRole={userRole} />}
+        {() => <MoreStackNavigator userId={userId} userRole={userRole} onLogout={onLogout} />}
       </Tab.Screen>
     </Tab.Navigator>
   );
@@ -130,13 +203,12 @@ function MainTabNavigator({ userId, userRole, onLogout }) {
 export default function App() {
   const [userToken, setUserToken] = useState(null);
   const [userRole, setUserRole] = useState(null);
-  const [isDbReady, setIsDbReady] = useState(false); // Controle do Banco de Dados
+  const [isDbReady, setIsDbReady] = useState(false); 
   
   // Estados do Toast
   const [toastMsg, setToastMsg] = useState(null);
   const [toastType, setToastType] = useState('success');
 
-  // Função auxiliar para mostrar toast
   const showToast = (msg, type = 'success') => {
     setToastMsg(msg);
     setToastType(type);
@@ -160,7 +232,7 @@ export default function App() {
     return (
       <View style={{flex: 1, backgroundColor: '#121212', justifyContent: 'center', alignItems: 'center'}}>
         <ActivityIndicator size="large" color="#00A79D" />
-        <Text style={{color: '#fff', marginTop: 20}}>Preparando Banco de Dados...</Text>
+        <Text style={{color: '#fff', marginTop: 20}}>Preparando...</Text>
       </View>
     );
   }
@@ -179,7 +251,6 @@ export default function App() {
             <MainTabNavigator userId={userToken} userRole={userRole} onLogout={() => setUserToken(null)} />
         )}
 
-        {}
         <Toast message={toastMsg} type={toastType} onClose={() => setToastMsg(null)} />
         
       </NavigationContainer>

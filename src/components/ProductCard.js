@@ -5,7 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 const { width } = Dimensions.get('window');
 const cardWidth = (width / 2) - 25;
 
-const ProductCard = ({ product, onPress, userRole, onDelete, onEdit, index }) => {
+const ProductCard = ({ product, onPress, onDelete, onEdit, index }) => {
   const anim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -38,7 +38,12 @@ const ProductCard = ({ product, onPress, userRole, onDelete, onEdit, index }) =>
   return (
     <Animated.View style={[s.card, { width: cardWidth }, cardStyle]}>
       <TouchableOpacity onPress={onPress} activeOpacity={0.8}>
-        <Image source={{ uri: product.imageUri }} style={s.image} />
+        {/* CORREÇÃO AQUI: Adicionado resizeMode="cover" */}
+        <Image 
+            source={{ uri: product.imageUri }} 
+            style={s.image} 
+            resizeMode="cover" 
+        />
         <View style={s.info}>
           <Text style={s.title} numberOfLines={1}>{product.title}</Text>
           <Text style={s.price}>{product.price}</Text>
