@@ -1,138 +1,223 @@
 import React, { useState, useRef } from 'react';
-import { View, Text, StyleSheet, ScrollView, Modal, Animated, Easing, Alert } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Modal, Animated, Alert, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import SolidButton from '../components/SolidButton';
-import { StyledInput, PhoneMaskInput } from '../components/Inputs'; // Reutilizando seus inputs
-import { clearCart } from '../database/database';
+import { StyledInput } from '../components/Inputs'; 
+import { processOrder, getCartItems, updateCustomOrderStatus } from '../database/database';
+import { useTheme } from '../context/ThemeContext';
 
 const PaymentScreen = ({ navigation, route }) => {
-  const { total, userId } = route.params || { total: 0 };
+  const { total, userId, isCustom, orderId } = route.params || { total: 0 };
+  const { theme, isDark } = useTheme();
   
+  const [method, setMethod] = useState('credit'); // credit, debit, pix
+  
+  // Card States
   const [name, setName] = useState('');
   const [cardNumber, setCardNumber] = useState('');
   const [expiry, setExpiry] = useState('');
   const [cvv, setCvv] = useState('');
+  const [installments, setInstallments] = useState(1);
   
+  // Address States
+  const [cep, setCep] = useState('');
+  const [address, setAddress] = useState('');
+  const [number, setNumber] = useState('');
+
   const [processing, setProcessing] = useState(false);
   const [success, setSuccess] = useState(false);
-
-  // Animação do check de sucesso
   const scaleAnim = useRef(new Animated.Value(0)).current;
 
+  // --- FORMATAÇÕES ---
+
+  const handleExpiryChange = (text) => {
+    // Remove tudo que não é número
+    const clean = text.replace(/\D/g, '');
+    
+    // Formata MM/AA
+    if (clean.length >= 2) {
+      setExpiry(`${clean.slice(0, 2)}/${clean.slice(2, 4)}`);
+    } else {
+      setExpiry(clean);
+    }
+  };
+
+  const handleCvvChange = (text) => {
+    // Apenas números e no máximo 4 dígitos
+    const clean = text.replace(/\D/g, '').slice(0, 4);
+    setCvv(clean);
+  };
+
+  const handleCardNumberChange = (text) => {
+    // Apenas números e no máximo 16 dígitos
+    const clean = text.replace(/\D/g, '').slice(0, 16);
+    setCardNumber(clean);
+  };
+
   const handlePayment = async () => {
-    if (!name || !cardNumber || !expiry || !cvv) {
-      Alert.alert('Atenção', 'Preencha todos os dados do cartão (simulação).');
-      return;
+    if (method !== 'pix') {
+        if (!name || !cardNumber || !expiry || !cvv || !cep || !address || !number) {
+            Alert.alert('Atenção', 'Preencha todos os dados.');
+            return;
+        }
+        // Validação simples de data
+        if (expiry.length < 5) {
+            Alert.alert('Erro', 'Data de validade inválida.');
+            return;
+        }
     }
 
     setProcessing(true);
 
-    // 1. Simula tempo de processamento (2 segundos)
     setTimeout(async () => {
-      setProcessing(false);
-      setSuccess(true);
-      
-      // 2. Limpa o carrinho no banco de dados
-      await clearCart(userId);
+        try {
+            let successOrder = false;
 
-      // 3. Inicia animação de sucesso
-      Animated.spring(scaleAnim, {
-        toValue: 1,
-        friction: 5,
-        tension: 40,
-        useNativeDriver: true,
-      }).start();
+            if (isCustom) {
+                successOrder = await updateCustomOrderStatus(orderId, 'paid');
+            } else {
+                const cartItems = await getCartItems(userId);
+                successOrder = await processOrder(userId, total, cartItems);
+            }
 
-      // 4. Volta para o início após mostrar o sucesso
-      setTimeout(() => {
-        setSuccess(false);
-        navigation.reset({
-            index: 0,
-            routes: [{ name: 'CatalogList' }], // Volta para o catálogo
-        });
-        Alert.alert("Obrigado!", "Sua arte chegará em breve.");
-      }, 2500);
+            setProcessing(false);
 
+            if (successOrder) {
+                setSuccess(true);
+                Animated.spring(scaleAnim, { toValue: 1, friction: 5, tension: 40, useNativeDriver: true }).start();
+
+                setTimeout(() => {
+                    setSuccess(false);
+                    if (isCustom) {
+                        navigation.goBack();
+                        Alert.alert("Sucesso!", "Pagamento confirmado! Seu pedido entrou em produção.");
+                    } else {
+                        navigation.reset({ index: 0, routes: [{ name: 'CatalogList' }] });
+                        Alert.alert("Sucesso!", "Compra realizada!");
+                    }
+                }, 2500);
+            } else {
+                Alert.alert("Erro", "Falha ao registrar venda.");
+            }
+        } catch (e) {
+            setProcessing(false);
+            Alert.alert("Erro", "Ocorreu um erro inesperado.");
+        }
     }, 2000);
   };
 
-  // Renderiza o Modal de Sucesso
-  const renderSuccessModal = () => (
-    <Modal visible={success} transparent animationType="fade">
-      <View style={s.modalOverlay}>
-        <View style={s.successBox}>
-          <Animated.View style={{ transform: [{ scale: scaleAnim }] }}>
-            <Ionicons name="checkmark-circle" size={100} color="#00C851" />
-          </Animated.View>
-          <Text style={s.successTitle}>Pagamento Aprovado!</Text>
-          <Text style={s.successSub}>Sua compra foi confirmada.</Text>
-        </View>
+  const PaymentTabs = () => (
+      <View style={[s.tabs, { borderColor: theme.border }]}>
+          <TouchableOpacity onPress={() => setMethod('credit')} style={[s.tab, method === 'credit' && { backgroundColor: theme.primary }]}>
+              <Text style={{ color: method === 'credit' ? '#fff' : theme.textSecondary, fontWeight: 'bold' }}>Crédito</Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => setMethod('debit')} style={[s.tab, method === 'debit' && { backgroundColor: theme.primary }]}>
+              <Text style={{ color: method === 'debit' ? '#fff' : theme.textSecondary, fontWeight: 'bold' }}>Débito</Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => setMethod('pix')} style={[s.tab, method === 'pix' && { backgroundColor: theme.primary }]}>
+              <Text style={{ color: method === 'pix' ? '#fff' : theme.textSecondary, fontWeight: 'bold' }}>Pix</Text>
+          </TouchableOpacity>
       </View>
-    </Modal>
   );
 
   return (
-    <SafeAreaView style={s.container} edges={['bottom']}>
-      {renderSuccessModal()}
+    <SafeAreaView style={[s.container, { backgroundColor: theme.background }]} edges={['bottom']}>
       
-      <View style={s.header}>
-        <Text style={s.headerTitle}>Checkout Seguro</Text>
-      </View>
+      <Modal visible={success} transparent animationType="fade">
+        <View style={s.modalOverlay}>
+          <View style={[s.successBox, { backgroundColor: theme.card }]}>
+            <Animated.View style={{ transform: [{ scale: scaleAnim }] }}>
+              <Ionicons name="checkmark-circle" size={100} color={theme.primary} />
+            </Animated.View>
+            <Text style={[s.successTitle, { color: theme.text }]}>Pagamento Aprovado!</Text>
+          </View>
+        </View>
+      </Modal>
 
       <ScrollView contentContainerStyle={s.content}>
-        <View style={s.cardPreview}>
-            <Text style={s.cardLabel}>Valor Total</Text>
-            <Text style={s.totalValue}>R$ {total?.toFixed(2).replace('.', ',')}</Text>
-            <View style={s.secureBadge}>
-                <Ionicons name="lock-closed" size={14} color="#00A79D" />
-                <Text style={s.secureText}>Ambiente Seguro (Simulado)</Text>
-            </View>
-        </View>
-
-        <Text style={s.sectionTitle}>Dados do Cartão</Text>
+        <Text style={[s.headerTitle, { color: theme.text }]}>Checkout</Text>
         
-        <StyledInput 
-            placeholder="Número do Cartão" 
-            keyboard="numeric" 
-            value={cardNumber} 
-            onChange={(t) => setCardNumber(t.replace(/\D/g, '').slice(0, 16))} // Só números
-            icon="card-outline"
-        />
+        <PaymentTabs />
 
-        <StyledInput 
-            placeholder="Nome impresso no cartão" 
-            value={name} 
-            onChange={setName} 
-            autoCap="characters"
-        />
+        {method === 'pix' ? (
+            <View style={[s.pixContainer, { backgroundColor: theme.card, borderColor: theme.border }]}>
+                <Ionicons name="qr-code-outline" size={100} color={theme.text} />
+                <Text style={{ color: theme.textSecondary, textAlign: 'center', marginVertical: 10 }}>
+                    Copie o código abaixo ou escaneie o QR Code para pagar.
+                </Text>
+                <View style={[s.pixCode, { backgroundColor: theme.background }]}>
+                    <Text numberOfLines={1} style={{ color: theme.text, flex: 1 }}>00020126330014BR.GOV.BCB.PIX...</Text>
+                    <Ionicons name="copy-outline" size={20} color={theme.primary} />
+                </View>
+            </View>
+        ) : (
+            <View style={s.section}>
+                <Text style={[s.sectionTitle, { color: theme.textSecondary }]}>DADOS DO CARTÃO ({method === 'credit' ? 'Crédito' : 'Débito'})</Text>
+                
+                <StyledInput 
+                    placeholder="Número do Cartão" 
+                    keyboardType="numeric" 
+                    value={cardNumber} 
+                    onChange={handleCardNumberChange} 
+                    maxLength={16}
+                />
+                
+                <StyledInput 
+                    placeholder="Nome Impresso" 
+                    value={name} 
+                    onChange={setName} 
+                    autoCap="characters" 
+                />
+                
+                <View style={s.row}>
+                    <View style={{flex: 1, marginRight: 10}}>
+                        <StyledInput 
+                            placeholder="MM/AA" 
+                            value={expiry} 
+                            onChange={handleExpiryChange} 
+                            maxLength={5} 
+                            keyboardType="numeric"
+                        />
+                    </View>
+                    <View style={{flex: 1}}>
+                        <StyledInput 
+                            placeholder="CVV" 
+                            value={cvv} 
+                            onChange={handleCvvChange} 
+                            keyboardType="numeric" 
+                            maxLength={4} 
+                        />
+                    </View>
+                </View>
+            </View>
+        )}
 
-        <View style={s.row}>
-            <View style={{flex: 1, marginRight: 10}}>
-                <StyledInput 
-                    placeholder="MM/AA" 
-                    value={expiry} 
-                    onChange={setExpiry} 
-                    keyboard="numeric"
-                    maxLength={5}
-                />
+        {method !== 'pix' && (
+            <View style={s.section}>
+                <Text style={[s.sectionTitle, { color: theme.textSecondary }]}>ENDEREÇO</Text>
+                <View style={s.row}>
+                    <View style={{flex: 1.5, marginRight: 10}}>
+                        <StyledInput placeholder="CEP" keyboardType="numeric" value={cep} onChange={setCep} maxLength={8} />
+                    </View>
+                    <View style={{flex: 1}}>
+                        <StyledInput placeholder="Número" keyboardType="numeric" value={number} onChange={setNumber} />
+                    </View>
+                </View>
+                <StyledInput placeholder="Rua / Bairro" value={address} onChange={setAddress} />
             </View>
-            <View style={{flex: 1}}>
-                <StyledInput 
-                    placeholder="CVV" 
-                    value={cvv} 
-                    onChange={setCvv} 
-                    keyboard="numeric"
-                    maxLength={3}
-                />
-            </View>
+        )}
+
+        <View style={[s.totalContainer, { borderTopColor: theme.border }]}>
+            <Text style={[s.totalLabel, { color: theme.text }]}>Total a pagar</Text>
+            <Text style={[s.totalValue, { color: theme.primary }]}>R$ {total?.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</Text>
         </View>
 
       </ScrollView>
 
-      <View style={s.footer}>
+      <View style={[s.footer, { backgroundColor: theme.card, borderTopColor: theme.border }]}>
         <SolidButton 
-            text={processing ? "PROCESSANDO..." : `PAGAR R$ ${total?.toFixed(2).replace('.', ',')}`} 
+            text={processing ? "PROCESSANDO..." : method === 'pix' ? "JÁ PAGUEI NO PIX" : "FINALIZAR PEDIDO"} 
             onPress={processing ? null : handlePayment} 
             style={{ opacity: processing ? 0.7 : 1 }}
         />
@@ -142,24 +227,23 @@ const PaymentScreen = ({ navigation, route }) => {
 };
 
 const s = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#121212' },
-  header: { padding: 20, borderBottomWidth: 1, borderBottomColor: '#333', alignItems: 'center' },
-  headerTitle: { color: '#fff', fontSize: 18, fontWeight: 'bold' },
+  container: { flex: 1 },
   content: { padding: 20 },
-  cardPreview: { backgroundColor: '#1f1f1f', padding: 20, borderRadius: 12, marginBottom: 25, alignItems: 'center', borderWidth: 1, borderColor: '#333' },
-  cardLabel: { color: '#aaa', fontSize: 14, textTransform: 'uppercase', letterSpacing: 1 },
-  totalValue: { color: '#fff', fontSize: 32, fontWeight: 'bold', marginVertical: 10 },
-  secureBadge: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(0, 167, 157, 0.1)', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 20 },
-  secureText: { color: '#00A79D', fontSize: 12, marginLeft: 5 },
-  sectionTitle: { color: '#fff', fontSize: 18, fontWeight: '600', marginBottom: 15 },
+  headerTitle: { fontSize: 28, fontWeight: 'bold', marginBottom: 20 },
+  tabs: { flexDirection: 'row', borderWidth: 1, borderRadius: 8, marginBottom: 20, overflow: 'hidden' },
+  tab: { flex: 1, padding: 12, alignItems: 'center' },
+  section: { marginBottom: 20 },
+  sectionTitle: { fontSize: 12, fontWeight: 'bold', marginBottom: 10, letterSpacing: 1 },
   row: { flexDirection: 'row' },
-  footer: { padding: 20, borderTopWidth: 1, borderTopColor: '#333', backgroundColor: '#1f1f1f' },
-  
-  // Modal Styles
+  pixContainer: { padding: 30, alignItems: 'center', borderRadius: 12, borderWidth: 1, marginBottom: 20 },
+  pixCode: { flexDirection: 'row', padding: 10, borderRadius: 8, alignItems: 'center', width: '100%' },
+  totalContainer: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 10, paddingTop: 20, borderTopWidth: 1 },
+  totalLabel: { fontSize: 18 },
+  totalValue: { fontSize: 24, fontWeight: 'bold' },
+  footer: { padding: 20, borderTopWidth: 1 },
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.8)', justifyContent: 'center', alignItems: 'center' },
-  successBox: { width: '80%', backgroundColor: '#1f1f1f', padding: 30, borderRadius: 20, alignItems: 'center', borderWidth: 1, borderColor: '#333' },
-  successTitle: { color: '#fff', fontSize: 22, fontWeight: 'bold', marginTop: 20 },
-  successSub: { color: '#aaa', fontSize: 16, marginTop: 5, textAlign: 'center' },
+  successBox: { width: '80%', padding: 30, borderRadius: 20, alignItems: 'center', elevation: 10 },
+  successTitle: { fontSize: 22, fontWeight: 'bold', marginTop: 20 },
 });
 
 export default PaymentScreen;

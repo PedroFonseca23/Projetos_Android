@@ -1,52 +1,75 @@
 import React, { useEffect, useRef } from 'react';
 import { View, Text, Image, TouchableOpacity, StyleSheet, Dimensions, Animated } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useTheme } from '../context/ThemeContext';
 
 const { width } = Dimensions.get('window');
-const cardWidth = (width / 2) - 25;
+const cardWidth = (width / 2) - 20;
+const fixedImageHeight = cardWidth * 1.3; 
 
 const ProductCard = ({ product, onPress, onDelete, onEdit, index }) => {
-  const anim = useRef(new Animated.Value(0)).current;
+  // Valores iniciais para animação
+  const opacityAnim = useRef(new Animated.Value(0)).current;
+  const translateYAnim = useRef(new Animated.Value(50)).current; // Começa 50px para baixo
+  const scaleAnim = useRef(new Animated.Value(0.9)).current;     // Começa um pouco menor
+
+  const { theme } = useTheme();
 
   useEffect(() => {
-    Animated.timing(anim, {
-      toValue: 1,
-      duration: 300,
-      delay: index * 100,
-      useNativeDriver: true,
-    }).start();
-  }, [anim, index]);
-
-  const cardStyle = {
-    opacity: anim,
-    transform: [
-      {
-        scale: anim.interpolate({
-          inputRange: [0, 1],
-          outputRange: [0.9, 1],
-        }),
-      },
-      {
-        translateY: anim.interpolate({
-          inputRange: [0, 1],
-          outputRange: [20, 0],
-        }),
-      },
-    ],
-  };
+    // Executa as animações em paralelo para criar o efeito fluido
+    Animated.parallel([
+      // 1. Aparece suavemente (Fade In)
+      Animated.timing(opacityAnim, {
+        toValue: 1,
+        duration: 500,
+        delay: index * 100, // Efeito cascata
+        useNativeDriver: true,
+      }),
+      // 2. Desliza para cima com física de mola (Slide Up Spring)
+      Animated.spring(translateYAnim, {
+        toValue: 0,
+        friction: 6,   // Controla o "atrito" (quanto menor, mais solto)
+        tension: 50,   // Controla a velocidade
+        delay: index * 100,
+        useNativeDriver: true,
+      }),
+      // 3. Escala para o tamanho original (Scale Up)
+      Animated.spring(scaleAnim, {
+        toValue: 1,
+        friction: 7,
+        tension: 40,
+        delay: index * 100,
+        useNativeDriver: true,
+      })
+    ]).start();
+  }, [index]);
 
   return (
-    <Animated.View style={[s.card, { width: cardWidth }, cardStyle]}>
-      <TouchableOpacity onPress={onPress} activeOpacity={0.8}>
-        {/* CORREÇÃO AQUI: Adicionado resizeMode="cover" */}
-        <Image 
-            source={{ uri: product.imageUri }} 
-            style={s.image} 
-            resizeMode="cover" 
-        />
+    <Animated.View style={[
+      s.card, 
+      { 
+        width: cardWidth, 
+        backgroundColor: theme.card, 
+        borderColor: theme.border,
+        opacity: opacityAnim,
+        transform: [
+            { translateY: translateYAnim },
+            { scale: scaleAnim }
+        ]
+      }
+    ]}>
+      <TouchableOpacity onPress={onPress} activeOpacity={0.9}>
+        <View style={s.imageContainer}>
+            <Image 
+                source={{ uri: product.imageUri }} 
+                style={s.image} 
+                resizeMode="cover" 
+            />
+        </View>
+        
         <View style={s.info}>
-          <Text style={s.title} numberOfLines={1}>{product.title}</Text>
-          <Text style={s.price}>{product.price}</Text>
+          <Text style={[s.title, { color: theme.text }]} numberOfLines={1}>{product.title}</Text>
+          <Text style={[s.price, { color: theme.primary }]}>{product.price}</Text>
         </View>
       </TouchableOpacity>
       
@@ -54,12 +77,12 @@ const ProductCard = ({ product, onPress, onDelete, onEdit, index }) => {
         <View style={s.adminButtons}>
           {onEdit && (
             <TouchableOpacity style={s.iconButton} onPress={onEdit}>
-              <Ionicons name="pencil-outline" size={20} color="#ffbb33" />
+              <Ionicons name="pencil" size={16} color="#fff" />
             </TouchableOpacity>
           )}
           {onDelete && (
-            <TouchableOpacity style={s.iconButton} onPress={onDelete}>
-              <Ionicons name="trash-outline" size={20} color="#ff4444" />
+            <TouchableOpacity style={[s.iconButton, { backgroundColor: theme.danger }]} onPress={onDelete}>
+              <Ionicons name="trash" size={16} color="#fff" />
             </TouchableOpacity>
           )}
         </View>
@@ -70,44 +93,57 @@ const ProductCard = ({ product, onPress, onDelete, onEdit, index }) => {
 
 const s = StyleSheet.create({
   card: {
-    backgroundColor: '#1f1f1f',
-    borderRadius: 12,
-    overflow: 'hidden',
-    marginBottom: 10,
+    borderRadius: 16, // Arredondamento um pouco maior para ficar mais moderno
+    marginBottom: 20,
+    marginHorizontal: 5,
     borderWidth: 1,
-    borderColor: '#333',
-    elevation: 5,
+    overflow: 'hidden',
+    // Sombras mais suaves
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+  },
+  imageContainer: {
+    width: '100%',
+    height: fixedImageHeight,
+    backgroundColor: '#eee',
   },
   image: {
     width: '100%',
-    height: cardWidth,
-    backgroundColor: '#333',
+    height: '100%',
   },
   info: {
-    padding: 12,
+    padding: 14,
+    paddingVertical: 16,
   },
   title: {
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: '600',
-    color: '#eee',
-    marginBottom: 4,
+    marginBottom: 6,
+    letterSpacing: 0.3,
   },
   price: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#00A79D',
+    fontSize: 17,
+    fontWeight: '700',
   },
   adminButtons: {
     position: 'absolute',
-    top: 8,
-    right: 8,
+    top: 10,
+    right: 10,
     flexDirection: 'row',
   },
   iconButton: {
-    backgroundColor: 'rgba(0,0,0,0.6)',
-    padding: 5,
-    borderRadius: 15,
-    marginLeft: 5,
+    backgroundColor: 'rgba(0,0,0,0.5)', // Fundo um pouco mais transparente
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginLeft: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.2)'
   }
 });
 

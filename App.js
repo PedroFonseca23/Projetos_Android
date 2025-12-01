@@ -4,11 +4,11 @@ import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator, CardStyleInterpolators } from '@react-navigation/stack';
-import PaymentScreen from './src/screens/PaymentScreen';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
+import { ThemeProvider, useTheme } from './src/context/ThemeContext';
 
-
+import PaymentScreen from './src/screens/PaymentScreen';
 import { initDatabase } from './src/database/database';
 import HomeScreen from './src/screens/HomeScreen';
 import CatalogScreen from './src/screens/CatalogScreen';
@@ -22,74 +22,43 @@ import DashboardScreen from './src/screens/DashboardScreen';
 import LoginScreen from './src/screens/LoginScreen';
 import RegisterScreen from './src/screens/RegisterScreen';
 import Toast from './src/components/Toast';
+import CustomOrderScreen from './src/screens/CustomOrderScreen';
+import AdminOrdersScreen from './src/screens/AdminOrdersScreen';
 
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
 const BACKGROUND_IMAGES = [
-  'https://images.unsplash.com/photo-1579783902614-a3fb3927b6a5?q=80&w=1945&auto=format&fit=crop', // Arte 1
-  'https://images.unsplash.com/photo-1547891654-e66ed7ebb968?q=80&w=2070&auto=format&fit=crop',     // Arte 2 (Abstrata)
-  'https://images.unsplash.com/photo-1569172102373-d56b0264177b?q=80&w=2027&auto=format&fit=crop',   // Museu
-  'https://images.unsplash.com/photo-1578301978693-85fa9c0320b9?q=80&w=1919&auto=format&fit=crop',   // Tintas
+  'https://images.unsplash.com/photo-1579783902614-a3fb3927b6a5?q=80&w=1945',
+  'https://images.unsplash.com/photo-1547891654-e66ed7ebb968?q=80&w=2070',
+  'https://images.unsplash.com/photo-1569172102373-d56b0264177b?q=80&w=2027',
+  'https://images.unsplash.com/photo-1578301978693-85fa9c0320b9?q=80&w=1919',
 ];
-// --- COMPONENTES VISUAIS ---
 
 const AuthBackground = () => {
   const [imgIndex, setImgIndex] = useState(0);
   const fadeAnim = useRef(new Animated.Value(1)).current; 
-
   useEffect(() => {
-    
     const interval = setInterval(() => {
-      
-      
-      Animated.timing(fadeAnim, {
-        toValue: 0,           
-        duration: 1500,       
-        useNativeDriver: true,
-      }).start(() => {
-        
-        
+      Animated.timing(fadeAnim, { toValue: 0, duration: 1500, useNativeDriver: true }).start(() => {
         setImgIndex((prevIndex) => (prevIndex + 1) % BACKGROUND_IMAGES.length);
-        
-        
         fadeAnim.setValue(1);
       });
-      
     }, 6000); 
-
     return () => clearInterval(interval);
   }, []);
-
-  
   const currentImg = { uri: BACKGROUND_IMAGES[imgIndex] };
   const nextIndex = (imgIndex + 1) % BACKGROUND_IMAGES.length;
   const nextImg = { uri: BACKGROUND_IMAGES[nextIndex] };
-
   return (
     <View style={StyleSheet.absoluteFill}>
-      {}
-      <ImageBackground 
-        source={nextImg} 
-        resizeMode="cover" 
-        style={StyleSheet.absoluteFill} 
-      />
-
-      {}
+      <ImageBackground source={nextImg} resizeMode="cover" style={StyleSheet.absoluteFill} />
       <Animated.View style={[StyleSheet.absoluteFill, { opacity: fadeAnim }]}>
-        <ImageBackground 
-          source={currentImg} 
-          resizeMode="cover" 
-          style={StyleSheet.absoluteFill} 
-        />
+        <ImageBackground source={currentImg} resizeMode="cover" style={StyleSheet.absoluteFill} />
       </Animated.View>
-
-      {}
       <View style={{...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.65)'}} />
     </View>
   );
 };
-
-// --- NAVEGADORES ---
 
 function AuthNavigator({ onLoginSuccess, showToast }) {
   return (
@@ -97,80 +66,56 @@ function AuthNavigator({ onLoginSuccess, showToast }) {
       <AuthBackground />
       <Stack.Navigator screenOptions={{ headerShown: false, cardStyle: { backgroundColor: 'transparent' } }}>
         <Stack.Screen name="Login">
-          {props => (
-            <View style={s.authContainer}>
-                <LoginScreen 
-                    {...props} 
-                    onLoginSuccess={onLoginSuccess} 
-                    showAlert={(msg) => showToast(msg, 'alert')} 
-                />
-            </View>
-          )}
+          {props => <View style={s.authContainer}><LoginScreen {...props} onLoginSuccess={onLoginSuccess} showAlert={(msg) => showToast(msg, 'alert')} /></View>}
         </Stack.Screen>
         <Stack.Screen name="Register">
-          {props => (
-             <View style={s.authContainer}>
-                <RegisterScreen 
-                    {...props} 
-                    showAlert={(msg) => showToast(msg, 'alert')} 
-                    showSuccess={(msg) => showToast(msg, 'success')} 
-                />
-             </View>
-          )}
+          {props => <View style={s.authContainer}><RegisterScreen {...props} showAlert={(msg) => showToast(msg, 'alert')} showSuccess={(msg) => showToast(msg, 'success')} /></View>}
         </Stack.Screen>
       </Stack.Navigator>
     </KeyboardAvoidingView>
   );
 }
 
-function CatalogStackNavigator({ userId, userRole }) {
+const CatalogStackContent = ({ userId, userRole }) => {
+  const { theme } = useTheme();
   return (
     <Stack.Navigator 
       screenOptions={{ 
-        headerStyle: { backgroundColor: '#1f1f1f' }, 
-        headerTintColor: '#fff',
-        
-        // Isso faz a transição lateral suave em todos os sistemas
+        headerStyle: { backgroundColor: theme.card, shadowColor: 'transparent', elevation: 0 }, 
+        headerTintColor: theme.text,
+        headerTitleStyle: { fontWeight: 'bold' },
+        cardStyle: { backgroundColor: theme.background },
         cardStyleInterpolator: CardStyleInterpolators.forHorizontalIOS, 
       }}
     >
       <Stack.Screen name="CatalogList" component={CatalogScreen} options={{ headerShown: false }} initialParams={{ userId, userRole }} />
       <Stack.Screen name="ProductDetailScreen" component={ProductDetailScreen} options={{ title: 'Detalhes' }} initialParams={{ userId }} />
       <Stack.Screen name="CartScreen" component={CartScreen} options={{ title: 'Carrinho', headerShown: false }} initialParams={{ userId }} />
-      
-      {}
-      <Stack.Screen 
-        name="PaymentScreen" 
-        component={PaymentScreen} 
-        options={{ 
-            title: 'Pagamento',
-          
-            cardStyleInterpolator: CardStyleInterpolators.forVerticalIOS 
-        }} 
-      />
-
+      <Stack.Screen name="PaymentScreen" component={PaymentScreen} options={{ title: 'Pagamento', cardStyleInterpolator: CardStyleInterpolators.forVerticalIOS }} />
       <Stack.Screen name="DashboardScreen" component={DashboardScreen} options={{ title: 'Dashboard' }} />
       <Stack.Screen name="AddProduct" component={AddProductScreen} options={{ title: 'Adicionar Quadro' }} initialParams={{ userId }} />
       <Stack.Screen name="SelectEditScreen" component={SelectEditScreen} options={{ title: 'Gerenciar Quadros' }} initialParams={{ userId, userRole }} />
       <Stack.Screen name="EditProduct" component={EditProductScreen} options={{ title: 'Editar' }} />
     </Stack.Navigator>
   );
-}
+};
+
+function CatalogStackNavigator({ userId, userRole }) { return <CatalogStackContent userId={userId} userRole={userRole} />; }
+
 function MoreStackNavigator({ userId, userRole, onLogout }) {
+  const { theme } = useTheme();
   return (
-    <Stack.Navigator screenOptions={{ headerStyle: { backgroundColor: '#1f1f1f' }, headerTintColor: '#fff' }}>
-      <Stack.Screen 
-        name="MoreList" 
-        component={MoreScreen} 
-        options={{ headerShown: false }} 
-        initialParams={{ userId, userRole, onLogout }} 
-      />
+    <Stack.Navigator screenOptions={{ headerStyle: { backgroundColor: theme.card }, headerTintColor: theme.text, cardStyle: { backgroundColor: theme.background } }}>
+      <Stack.Screen name="MoreList" component={MoreScreen} options={{ headerShown: false }} initialParams={{ userId, userRole, onLogout }} />
+      {/* ADICIONADO AQUI PARA CORRIGIR O ERRO DE NAVEGAÇÃO */}
+      <Stack.Screen name="CustomOrderScreen" component={CustomOrderScreen} options={{ title: 'Pedido Personalizado', headerShown: false }} />
+      <Stack.Screen name="AdminOrdersScreen" component={AdminOrdersScreen} options={{ title: 'Pedidos Recebidos', headerShown: false }} />
     </Stack.Navigator>
   );
 }
 
-// CORREÇÃO AQUI: Recebe e repassa onLogout
 function MainTabNavigator({ userId, userRole, onLogout }) {
+  const { theme } = useTheme();
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
@@ -182,9 +127,9 @@ function MainTabNavigator({ userId, userRole, onLogout }) {
           else if (route.name === 'Mais') iconName = focused ? 'menu' : 'menu-outline';
           return <Ionicons name={iconName} size={size} color={color} />;
         },
-        tabBarStyle: { backgroundColor: '#1f1f1f', borderTopColor: '#333', height: 60, paddingBottom: 10 },
-        tabBarActiveTintColor: '#00A79D',
-        tabBarInactiveTintColor: '#666',
+        tabBarStyle: { backgroundColor: theme.card, borderTopColor: theme.border, height: 60, paddingBottom: 10, elevation: 0, shadowOpacity: 0 },
+        tabBarActiveTintColor: theme.primary,
+        tabBarInactiveTintColor: theme.textSecondary,
       })}
     >
       <Tab.Screen name="Início" component={HomeScreen} />
@@ -198,32 +143,19 @@ function MainTabNavigator({ userId, userRole, onLogout }) {
   );
 }
 
-// --- APP PRINCIPAL ---
-
 export default function App() {
   const [userToken, setUserToken] = useState(null);
   const [userRole, setUserRole] = useState(null);
   const [isDbReady, setIsDbReady] = useState(false); 
-  
-  // Estados do Toast
   const [toastMsg, setToastMsg] = useState(null);
   const [toastType, setToastType] = useState('success');
 
-  const showToast = (msg, type = 'success') => {
-    setToastMsg(msg);
-    setToastType(type);
-  };
+  const showToast = (msg, type = 'success') => { setToastMsg(msg); setToastType(type); };
 
   useEffect(() => {
     const startApp = async () => {
-      console.log("⏳ Iniciando App...");
       const success = await initDatabase();
-      if (success) {
-        setIsDbReady(true); 
-        console.log("🚀 App liberado!");
-      } else {
-        console.error("❌ Falha crítica na inicialização do DB");
-      }
+      if (success) setIsDbReady(true); 
     };
     startApp();
   }, []);
@@ -239,30 +171,21 @@ export default function App() {
 
   return (
     <SafeAreaProvider>
-      <NavigationContainer>
-        <StatusBar style="light" />
-        
-        {!userToken ? (
-            <AuthNavigator 
-                onLoginSuccess={(user) => { setUserToken(user.id); setUserRole(user.role); }} 
-                showToast={showToast}
-            />
-        ) : (
-            <MainTabNavigator userId={userToken} userRole={userRole} onLogout={() => setUserToken(null)} />
-        )}
-
-        <Toast message={toastMsg} type={toastType} onClose={() => setToastMsg(null)} />
-        
-      </NavigationContainer>
+      <ThemeProvider>
+        <NavigationContainer>
+          <StatusBar style="auto" />
+          {!userToken ? (
+              <AuthNavigator onLoginSuccess={(user) => { setUserToken(user.id); setUserRole(user.role); }} showToast={showToast} />
+          ) : (
+              <MainTabNavigator userId={userToken} userRole={userRole} onLogout={() => setUserToken(null)} />
+          )}
+          <Toast message={toastMsg} type={toastType} onClose={() => setToastMsg(null)} />
+        </NavigationContainer>
+      </ThemeProvider>
     </SafeAreaProvider>
   );
 }
 
 const s = StyleSheet.create({
-  authContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    paddingHorizontal: 20,
-    backgroundColor: 'transparent',
-  },
+  authContainer: { flex: 1, justifyContent: 'center', paddingHorizontal: 20 },
 });

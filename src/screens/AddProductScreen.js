@@ -5,11 +5,14 @@ import * as ImagePicker from 'expo-image-picker';
 import { Ionicons } from '@expo/vector-icons';
 
 import { StyledInput } from '../components/Inputs';
+import { CurrencyInput } from '../components/CurrencyInput'; // <--- Importado aqui
 import SolidButton from '../components/SolidButton';
 import { addProduct } from '../database/database';
+import { useTheme } from '../context/ThemeContext';
 
 const AddProductScreen = ({ navigation, route }) => {
   const { userId } = route.params || {}; 
+  const { theme } = useTheme();
   
   const [title, setTitle] = useState('');
   const [price, setPrice] = useState('');
@@ -22,8 +25,7 @@ const AddProductScreen = ({ navigation, route }) => {
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: true,
-      aspect: [1, 1],
-      quality: 1,
+      quality: 0.8,
     });
 
     if (!result.canceled) {
@@ -32,96 +34,122 @@ const AddProductScreen = ({ navigation, route }) => {
   };
 
   const handleSave = async () => {
-    console.log("--- INÍCIO DO PROCESSO DE SALVAR ---");
+    if (!userId) return Alert.alert('Erro', 'Faça login novamente.');
     
-    
-    if (!userId) {
-      Alert.alert('Erro', 'Usuário não identificado. Tente fazer login novamente.');
-      console.error("ERRO: userId está undefined.");
-      return;
-    }
-
-    if (!title || !price || !imageUri) {
-      Alert.alert('Erro', 'Preencha todos os campos obrigatórios e a imagem.');
-      console.log("ERRO: Campos vazios.");
-      return;
+    if (!title || !price || !imageUri || !widthDim || !heightDim) {
+      return Alert.alert('Atenção', 'Preencha todos os campos e a foto.');
     }
 
     setIsLoading(true);
     try {
-      
-      let formattedPrice = price;
-      if (!price.includes('R$')) {
-        formattedPrice = `R$ ${price}`;
-      }
-
-      console.log(`Tentando salvar: ${title} | Usuário: ${userId}`);
-      
+      // O CurrencyInput já formata com "R$", mas garantimos aqui
+      let formattedPrice = price.includes('R$') ? price : `R$ ${price}`;
       
       await addProduct(title, formattedPrice, widthDim, heightDim, imageUri, userId);
-      
-      console.log("✅ SUCESSO: Produto salvo no SQLite.");
       Alert.alert('Sucesso', 'Quadro adicionado ao catálogo!');
       navigation.goBack();
-
     } catch (error) {
-      
-      console.error("❌ ERRO CRÍTICO AO SALVAR NO BANCO:", error);
-      
-     
-      Alert.alert('Erro ao Salvar', `Detalhes: ${error.message || error}`);
+      Alert.alert('Erro', 'Não foi possível salvar o produto.');
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <SafeAreaView style={s.container} edges={['bottom']}>
+    <SafeAreaView style={[s.container, { backgroundColor: theme.background }]} edges={['bottom']}>
       <ScrollView contentContainerStyle={s.scroll}>
-        <Text style={s.label}>Imagem da Obra</Text>
-        <TouchableOpacity style={s.imagePicker} onPress={pickImage}>
+        
+        <Text style={[s.headerTitle, { color: theme.text }]}>Novo Quadro</Text>
+        <Text style={[s.headerSub, { color: theme.textSecondary }]}>Preencha os dados da obra para venda</Text>
+
+        <TouchableOpacity 
+            style={[s.imagePicker, { backgroundColor: theme.card, borderColor: theme.border }]} 
+            onPress={pickImage}
+            activeOpacity={0.8}
+        >
           {imageUri ? (
-            <Image source={{ uri: imageUri }} style={s.imagePreview} />
+            <>
+                <Image source={{ uri: imageUri }} style={s.imagePreview} resizeMode="cover" />
+                <View style={s.editBadge}>
+                    <Ionicons name="camera" size={20} color="#fff" />
+                </View>
+            </>
           ) : (
             <View style={s.placeholder}>
-              <Ionicons name="camera-outline" size={40} color="#555" />
-              <Text style={s.placeholderText}>Toque para selecionar</Text>
+              <Ionicons name="image-outline" size={48} color={theme.textSecondary} />
+              <Text style={[s.placeholderText, { color: theme.textSecondary }]}>Carregar Foto</Text>
             </View>
           )}
         </TouchableOpacity>
 
-        <Text style={s.label}>Título da Obra</Text>
-        <StyledInput placeholder="Ex: Noite Estrelada" value={title} onChange={setTitle} />
+        <View style={s.formSection}>
+            <Text style={[s.label, { color: theme.text }]}>Informações Básicas</Text>
+            
+            <StyledInput 
+                placeholder="Título da Obra (ex: Abstrato Azul)" 
+                value={title} 
+                onChange={setTitle} 
+            />
+            
+            {/* AQUI ESTÁ A MUDANÇA: CurrencyInput */}
+            <CurrencyInput 
+                placeholder="Valor (R$ 0,00)" 
+                value={price} 
+                onChange={setPrice} 
+            />
 
-        <Text style={s.label}>Preço (R$)</Text>
-        <StyledInput placeholder="Ex: 150,00" value={price} onChange={setPrice} keyboardType="numeric" />
-
-        <View style={s.row}>
-          <View style={{flex: 1, marginRight: 10}}>
-            <Text style={s.label}>Largura (cm)</Text>
-            <StyledInput placeholder="Ex: 60" value={widthDim} onChange={setWidthDim} keyboardType="numeric" />
-          </View>
-          <View style={{flex: 1}}>
-            <Text style={s.label}>Altura (cm)</Text>
-            <StyledInput placeholder="Ex: 90" value={heightDim} onChange={setHeightDim} keyboardType="numeric" />
-          </View>
+            <Text style={[s.label, { color: theme.text, marginTop: 10 }]}>Dimensões</Text>
+            <View style={s.row}>
+                <View style={{flex: 1, marginRight: 10}}>
+                    <StyledInput 
+                        placeholder="Largura (cm)" 
+                        value={widthDim} 
+                        onChange={setWidthDim} 
+                        keyboardType="numeric" 
+                    />
+                </View>
+                <View style={{flex: 1}}>
+                    <StyledInput 
+                        placeholder="Altura (cm)" 
+                        value={heightDim} 
+                        onChange={setHeightDim} 
+                        keyboardType="numeric" 
+                    />
+                </View>
+            </View>
         </View>
 
         <View style={s.spacer} />
-        <SolidButton text={isLoading ? "Salvando..." : "CADASTRAR QUADRO"} onPress={handleSave} />
+        <SolidButton text={isLoading ? "SALVANDO..." : "PUBLICAR QUADRO"} onPress={handleSave} />
+        
       </ScrollView>
     </SafeAreaView>
   );
 };
 
 const s = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#121212' },
+  container: { flex: 1 },
   scroll: { padding: 20 },
-  label: { color: '#ccc', marginBottom: 8, marginLeft: 4, fontSize: 14, fontWeight: '600' },
-  imagePicker: { height: 250, backgroundColor: '#1f1f1f', borderRadius: 12, marginBottom: 20, overflow: 'hidden', borderWidth: 1, borderColor: '#333', justifyContent: 'center', alignItems: 'center' },
+  headerTitle: { fontSize: 28, fontWeight: 'bold', marginBottom: 5 },
+  headerSub: { fontSize: 14, marginBottom: 25 },
+  
+  imagePicker: { 
+      height: 280, 
+      borderRadius: 16, 
+      marginBottom: 25, 
+      overflow: 'hidden', 
+      borderWidth: 2, 
+      borderStyle: 'dashed', 
+      justifyContent: 'center', 
+      alignItems: 'center' 
+  },
   imagePreview: { width: '100%', height: '100%' },
+  editBadge: { position: 'absolute', bottom: 15, right: 15, backgroundColor: 'rgba(0,0,0,0.6)', padding: 10, borderRadius: 25 },
   placeholder: { alignItems: 'center' },
-  placeholderText: { color: '#555', marginTop: 10 },
+  placeholderText: { marginTop: 10, fontWeight: '600' },
+
+  formSection: { marginBottom: 20 },
+  label: { marginBottom: 10, marginLeft: 4, fontSize: 14, fontWeight: 'bold', textTransform: 'uppercase', opacity: 0.7 },
   row: { flexDirection: 'row' },
   spacer: { height: 20 },
 });

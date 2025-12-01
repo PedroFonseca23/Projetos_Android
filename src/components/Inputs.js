@@ -1,16 +1,25 @@
 import React, { useState } from 'react';
-import { View, TextInput, TouchableOpacity, Text, StyleSheet } from 'react-native';
+import { View, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useTheme } from '../context/ThemeContext';
 
 export const StyledInput = ({ placeholder, value, onChange, secure, keyboard, autoCap, style }) => {
   const [isFocused, setIsFocused] = useState(false);
+  const { theme } = useTheme();
 
   return (
-    <View style={[s.inputContainer, isFocused && s.inputContainerFocused, style]}>
+    <View style={[
+      s.inputContainer, 
+      { 
+        backgroundColor: theme.card, 
+        borderColor: isFocused ? theme.primary : theme.border 
+      }, 
+      style
+    ]}>
       <TextInput
-        style={s.inputCore}
+        style={[s.inputCore, { color: theme.text }]}
         placeholder={placeholder}
-        placeholderTextColor="#aaa"
+        placeholderTextColor={theme.textSecondary}
         secureTextEntry={secure}
         value={value}
         onChangeText={onChange}
@@ -26,13 +35,21 @@ export const StyledInput = ({ placeholder, value, onChange, secure, keyboard, au
 export const PasswordInput = ({ value, onChange, placeholder, autoCap = 'none' }) => {
   const [show, setShow] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
+  const { theme } = useTheme();
 
   return (
-    <View style={[s.inputContainer, isFocused && s.inputContainerFocused, s.passwordInputContainer]}>
+    <View style={[
+      s.inputContainer, 
+      s.passwordInputContainer,
+      { 
+        backgroundColor: theme.card, 
+        borderColor: isFocused ? theme.primary : theme.border 
+      }
+    ]}>
       <TextInput
-        style={s.inputCore}
+        style={[s.inputCore, { color: theme.text }]}
         placeholder={placeholder}
-        placeholderTextColor="#aaa"
+        placeholderTextColor={theme.textSecondary}
         secureTextEntry={!show}
         value={value}
         onChangeText={onChange}
@@ -44,7 +61,7 @@ export const PasswordInput = ({ value, onChange, placeholder, autoCap = 'none' }
         <Ionicons 
           name={show ? 'eye' : 'eye-off'} 
           size={24} 
-          color="#aaa" 
+          color={theme.textSecondary} 
         />
       </TouchableOpacity>
     </View>
@@ -53,37 +70,32 @@ export const PasswordInput = ({ value, onChange, placeholder, autoCap = 'none' }
 
 export const PhoneMaskInput = ({ value, onChange }) => {
   const [isFocused, setIsFocused] = useState(false);
+  const { theme } = useTheme();
 
   const handlePhoneChange = (text) => {
     const digits = text.replace(/\D/g, '');
     const truncatedDigits = digits.slice(0, 11);
-
     let maskedText = '';
-    if (truncatedDigits.length > 0) {
-      maskedText = `(${truncatedDigits.slice(0, 2)}`;
-    }
-    if (truncatedDigits.length >= 3) {
-      maskedText = `(${truncatedDigits.slice(0, 2)}) ${truncatedDigits.slice(2, 7)}`;
-    }
-    if (truncatedDigits.length >= 8) {
-      maskedText = `(${truncatedDigits.slice(0, 2)}) ${truncatedDigits.slice(2, 7)}-${truncatedDigits.slice(7)}`;
-    }
-    
-    if (truncatedDigits.length === 0) {
-      maskedText = '';
-    } else if (truncatedDigits.length <= 2) {
-        maskedText = `(${truncatedDigits}`;
-    }
-
+    if (truncatedDigits.length > 0) maskedText = `(${truncatedDigits.slice(0, 2)}`;
+    if (truncatedDigits.length >= 3) maskedText = `(${truncatedDigits.slice(0, 2)}) ${truncatedDigits.slice(2, 7)}`;
+    if (truncatedDigits.length >= 8) maskedText = `(${truncatedDigits.slice(0, 2)}) ${truncatedDigits.slice(2, 7)}-${truncatedDigits.slice(7)}`;
+    if (truncatedDigits.length === 0) maskedText = '';
+    else if (truncatedDigits.length <= 2) maskedText = `(${truncatedDigits}`;
     onChange(maskedText);
   };
 
   return (
-    <View style={[s.inputContainer, isFocused && s.inputContainerFocused]}>
+    <View style={[
+      s.inputContainer, 
+      { 
+        backgroundColor: theme.card, 
+        borderColor: isFocused ? theme.primary : theme.border 
+      }
+    ]}>
       <TextInput
-        style={s.inputCore}
+        style={[s.inputCore, { color: theme.text }]}
         placeholder="Telefone (com DDD)"
-        placeholderTextColor="#aaa"
+        placeholderTextColor={theme.textSecondary}
         keyboardType="phone-pad"
         value={value}
         onChangeText={handlePhoneChange}
@@ -96,13 +108,8 @@ export const PhoneMaskInput = ({ value, onChange }) => {
 };
 
 const s = StyleSheet.create({
-  inputContainer: { flexDirection: 'row', alignItems: 'center', height: 50, backgroundColor: 'rgba(0,0,0,0.7)', borderRadius: 6, marginBottom: 15, borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)', paddingHorizontal: 12 },
-  inputContainerFocused: { 
-    borderColor: '#00A79D',
-    borderWidth: 1.5, 
-    backgroundColor: 'rgba(0,0,0,0.8)' 
-  },
-  inputCore: { flex: 1, height: '100%', color: '#fff', fontSize: 16 },
+  inputContainer: { flexDirection: 'row', alignItems: 'center', height: 50, borderRadius: 6, marginBottom: 15, borderWidth: 1, paddingHorizontal: 12 },
+  inputCore: { flex: 1, height: '100%', fontSize: 16 },
   passwordInputContainer: { paddingLeft: 12, paddingRight: 0 }, 
   eye: { paddingHorizontal: 12, height: '100%', justifyContent: 'center', alignItems: 'center' }, 
 });
